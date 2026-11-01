@@ -420,9 +420,11 @@ export default function HostConsole() {
                   <p style={{ fontSize: '1.2rem', fontWeight: 600, lineHeight: 1.35, margin: '8px 0 14px' }}>{gameState.currentQuestion?.text || 'Picture or clip question'}</p>
                   {gameState.live?.presses ? <PressOrder presses={gameState.live.presses} out={gameState.live.out} holder={gameState.live.holder} /> : gameState.live && (
                     <p className="eyebrow eyebrow-heat" style={{ margin: '0 0 12px' }}>
-                      {gameState.live.holder
-                        ? `${gameState.live.holder.name} ${gameState.live.mode === 'buzzer' ? 'buzzed' : 'has the question'}`
-                        : `Buzzers open · ${gameState.live.out.length} locked out`}
+                      {gameState.live.phase === 'closed'
+                        ? 'Turns finished'
+                        : gameState.live.holder
+                          ? `${gameState.live.holder.name} ${gameState.live.mode === 'buzzer' ? 'buzzed' : 'has the question'}`
+                          : `Buzzers open · ${gameState.live.out.length} locked out`}
                     </p>
                   )}
                                     {hostAnswer && <JudgePanel answer={hostAnswer} live={gameState.live} manual={!!gameState.manual} timeUp={!!gameState.questionEndsAt && timeLeft <= 0} onJudge={judge} />}
@@ -631,7 +633,7 @@ function JudgePanel({ answer, live, manual, timeUp, onJudge }: {
         </div>
       ) : (
         <p className="dim" style={{ margin: '10px 0 0', fontSize: '0.88rem' }}>
-          {live?.presses ? 'Everyone can buzz. Take answers in the order above, then press Show answer.' : 'Waiting for a buzz. If nobody buzzes, press End now & reveal.'}
+          {live?.phase === 'closed' ? 'Turns finished. The answer stays hidden until you press Show answer.' : live?.presses ? 'Everyone can buzz. Take answers in the order above, then press Show answer.' : 'Waiting for a buzz. If nobody buzzes, press End now & reveal.'}
         </p>
       )}
       {answering && timeUp && <p className="eyebrow eyebrow-heat" style={{ margin: '10px 0 0' }}>Time is up — mark the answer</p>}

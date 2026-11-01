@@ -579,6 +579,27 @@ describe('results kept by hand (the buzzer and pass still run)', () => {
     assert.ok(engine.endQuestion());
   });
 
+  test('the timer never ends a question kept by hand', () => {
+    start([round4(1, { untimed: false })], 2);
+    assert.equal(engine.timerActs(), false);
+    start([round3(1)], 2);
+    assert.equal(engine.timerActs(), false);
+  });
+
+  test('when the turns are over, the question waits for the coordinator', () => {
+    start([round3(1)], 2);
+    assert.equal(engine.judge('correct').finished, true);
+    engine.holdReveal();
+    const { live, state, questionEndsAt } = engine.getState();
+    assert.equal(state, 'question');
+    assert.equal(live.phase, 'closed');
+    assert.equal(live.holder, null);
+    assert.equal(questionEndsAt, null);
+    assert.match(engine.judge('correct').error, /Nobody/);
+    assert.ok(engine.endQuestion());
+    assert.equal(engine.state, 'leaderboard');
+  });
+
   test('a physical buzzer takes its place in the same order', () => {
     start([round4(1)], 2);
     assert.equal(engine.buzz('s2').position, 1);

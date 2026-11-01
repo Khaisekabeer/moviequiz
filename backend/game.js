@@ -117,9 +117,16 @@ function createGame(io, { serverInfo = () => ({ lanAddresses: [], port: null }) 
     questionTimer = setTimeout(() => (gameEngine.live ? applyTurn(gameEngine.expireTurn()) : endCurrentQuestion()), Math.max(0, delay));
   }
 
+  // The turns are over. A round kept by hand shows the answer only when the coordinator says so.
+  function turnsOver() {
+    if (!gameEngine.byHand()) return endCurrentQuestion();
+    gameEngine.holdReveal();
+    broadcastState();
+  }
+
   // Buzzer and passing rounds: a turn ended, so the question closes or the next turn starts.
   function applyTurn({ finished }) {
-    if (finished) return endCurrentQuestion();
+    if (finished) return turnsOver();
     scheduleQuestionEnd();
     broadcastState();
   }
@@ -272,7 +279,7 @@ function createGame(io, { serverInfo = () => ({ lanAddresses: [], port: null }) 
       logEvent('question_started', { detail: { level: info.name, round: info.round, mode: info.mode, playersLeft: gameEngine.activePlayers().length } });
       // A passing question with nobody online to take it goes straight to the reveal.
       if (result.finished) {
-        endCurrentQuestion();
+        turnsOver();
         return callback(result);
       }
     }

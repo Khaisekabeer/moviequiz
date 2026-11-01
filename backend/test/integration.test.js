@@ -1110,6 +1110,31 @@ describe('buzzer and turns rounds have no options', () => {
 describe('spoken questions over the socket', () => {
   const spoken = { type: 'short', options: [], correctAnswer: 'Drishyam', accepted: 'Papanasam', mode: 'buzzer', untimed: true, answerSeconds: 3, scoring: { correct: 10, wrong: -5, timeout: 0 } };
 
+  test('a passing round kept by hand shows the answer only when the coordinator says so', async () => {
+    const turns = { ...spoken, mode: 'passing', afterMiss: 'next', untimed: false, scoring: null, manualResults: true };
+    engine.setQuestions([q(1, 1, turns), q(2, 1, turns)]);
+    const h = await host();
+    const a = await player('Asha');
+    await player('Bala');
+    await act(h, 'start_game');
+    await act(h, 'start_question');
+
+    assert.equal((await act(h, 'judge_answer', { verdict: 'correct' })).success, true);
+    await until(() => engine.live?.phase === 'closed', 'the question held after a correct answer');
+    assert.equal(engine.state, 'question');
+    assert.equal(last(a, 'question_result'), undefined);
+    await act(h, 'end_question');
+    await until(() => last(a, 'question_result'), 'the reveal on the coordinator\'s word');
+
+    await act(h, 'start_question');
+    await act(h, 'judge_answer', { verdict: 'pass' });
+    await act(h, 'judge_answer', { verdict: 'pass' });
+    await until(() => engine.live?.phase === 'closed', 'the question held after everyone passed');
+    assert.equal(engine.state, 'question');
+    await act(h, 'end_question');
+    assert.equal(engine.state, 'leaderboard');
+  });
+
   test('buzzers kept by hand: everyone presses, and every screen gets the order', async () => {
     engine.setQuestions([q(1, 1, { ...spoken, scoring: null, manualResults: true })]);
     const h = await host();

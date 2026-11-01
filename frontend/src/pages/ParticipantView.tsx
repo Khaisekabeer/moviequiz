@@ -588,6 +588,16 @@ function WatchTheScreen({ theme, title, detail }: { theme: string; title: string
 function TurnWait({ live, playerId, onBuzz }: { live: any; playerId: string; onBuzz: () => void }) {
   const lockedOut = live.out.includes(playerId);
   const box: CSSProperties = { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, textAlign: 'center' };
+  if (live.phase === 'closed') {
+    return (
+      <div style={box}>
+        <div className="comic-panel" style={{ padding: '14px 20px' }}>
+          <div className="comic-text" style={{ fontSize: '1.5rem', lineHeight: 1.15 }}>Question closed</div>
+          <p style={{ margin: '6px 0 0', fontSize: '0.95rem' }}>The answer is coming up on the big screen.</p>
+        </div>
+      </div>
+    );
+  }
   if (live.presses?.some((p: any) => p.id === playerId)) {
     const place = live.presses.findIndex((p: any) => p.id === playerId) + 1;
     return (

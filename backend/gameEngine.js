@@ -581,11 +581,17 @@ class GameEngine {
     this.timerMax = null;
   }
 
-  // The server's timer acts unless the round has no timer, or a spoken answer waits for the
-  // coordinator: running out of time mid-sentence must not score anything by itself.
+  // The server's timer acts unless the round has no timer, the round is kept by hand, or a spoken
+  // answer waits for the coordinator: running out of time mid-sentence must not score anything by itself.
   timerActs() {
-    if (this.questionEndsAt == null || this.isManual()) return false;
+    if (this.questionEndsAt == null || this.isManual() || this.byHand()) return false;
     return !(this.live?.phase === 'answering' && isSpoken(this.currentQuestion()));
+  }
+
+  // A round kept by hand: the turns are over and the answer waits for the coordinator.
+  holdReveal() {
+    Object.assign(this.live, { phase: 'closed', holder: null });
+    this.clearTimer();
   }
 
   startTurn(player, seconds) {

@@ -273,7 +273,10 @@ function TurnPanel({ live, spoken }: { live: any; spoken: boolean }) {
   let title: string;
   let detail: string;
 
-  if (holder) {
+  if (live.phase === 'closed') {
+    title = 'Question closed';
+    detail = 'The answer is coming up';
+  } else if (holder) {
     title = buzzer ? (live.out?.length ? `${holder.name} is up!` : `${holder.name} buzzed!`) : `${holder.name}'s turn`;
     detail = spoken ? 'Say your answer!' : buzzer ? 'Answering on their phone' : live.tries ? 'Passed on — half points' : 'Answer or pass';
   } else if (first) {
