@@ -5,6 +5,10 @@ import { avatarUri } from '../lib/avatar';
 export const OPTION_LABELS = ['A', 'B', 'C', 'D'];
 
 export const ordinal = (n: number) => `${n}${[, 'st', 'nd', 'rd'][n % 100 < 11 || n % 100 > 13 ? n % 10 : 0] ?? 'th'}`;
+// The final board: a player's points from every round, even if a round started everyone at 0.
+export const cumulative = (p: any) => Object.values<number>(p.rounds ?? {}).reduce((sum, n) => sum + n, 0);
+export const byCumulative = (board: any[]) => [...board].sort((a, b) =>
+  (Number(b.status === 'active') - Number(a.status === 'active')) || (cumulative(b) - cumulative(a)));
 // Round types other than a standard round, and how they are explained to players.
 export const ROUND_LABEL: Record<string, string> = { buzzer: '🔔 Buzzer round', passing: '🎯 Turns round', display: '🎬 On stage' };
 const signed = (n: number) => `${n > 0 ? '+' : ''}${n}`;

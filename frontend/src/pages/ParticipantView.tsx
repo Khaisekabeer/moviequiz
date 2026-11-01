@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 import { useSocket } from '../contexts/SocketContext';
 import { useCountdown } from '../hooks/useCountdown';
-import { Avatar, Burst, ComicBg, Rise, Spinner, TimerRing, VyuhamLogo, OPTION_LABELS, ROUND_LABEL, roundRule, ordinal } from '../components/ui';
+import { Avatar, Burst, ComicBg, Rise, Spinner, TimerRing, VyuhamLogo, OPTION_LABELS, ROUND_LABEL, roundRule, ordinal, cumulative, byCumulative } from '../components/ui';
 import { API_BASE } from '../lib/api';
 import { avatarChoices } from '../lib/avatar';
 import confetti from 'canvas-confetti';
@@ -462,7 +462,7 @@ export default function ParticipantView() {
   if (gameState.state === 'podium') {
     const board: any[] = gameState.finalLeaderboard || [];
     const disqualified = playerInfo.status === 'disqualified';
-    const ranked = board.filter(p => p.status !== 'disqualified');
+    const ranked = byCumulative(board.filter(p => p.status !== 'disqualified'));
     const rank = disqualified ? 0 : ranked.findIndex(p => p.id === playerInfo.id) + 1;
     const me = ranked[rank - 1];
     const medal = disqualified ? 'Disqualified' : rank === 1 ? 'Champion!' : rank === 2 ? 'Runner-up!' : rank === 3 ? 'Third place!' : 'Final standing';
@@ -476,7 +476,7 @@ export default function ParticipantView() {
               <Burst style={{ padding: '24px 40px 30px' }}>
                 <div className="comic-title slam" style={{ fontSize: 'clamp(5rem, 30vw, 8rem)' }}><span style={{ fontSize: '0.5em' }}>#</span>{rank}</div>
               </Burst>
-              <span className="comic-badge light">{me?.score ?? 0} points · of {ranked.length}</span>
+              <span className="comic-badge light">{me ? cumulative(me) : 0} points · of {ranked.length}</span>
             </>
           ) : (
             <h1 className="comic-title" style={{ fontSize: '3rem' }}>Game over</h1>

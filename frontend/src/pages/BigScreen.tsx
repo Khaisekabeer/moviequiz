@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef, useState, useEffect, type CSSProperties, type 
 import confetti from 'canvas-confetti';
 import { useSocket } from '../contexts/SocketContext';
 import { useCountdown } from '../hooks/useCountdown';
-import { Avatar, Burst, ComicBg, QrCode, Rise, TimerRing, VyuhamLogo, OPTION_LABELS, ROUND_LABEL, roundRule } from '../components/ui';
+import { Avatar, Burst, ComicBg, QrCode, Rise, TimerRing, VyuhamLogo, OPTION_LABELS, ROUND_LABEL, roundRule, cumulative, byCumulative } from '../components/ui';
 import { Standings } from '../components/Standings';
 import QuestionPicture from '../components/QuestionPicture';
 import QuestionVideo, { type VideoCommand } from '../components/QuestionVideo';
@@ -137,7 +137,7 @@ export default function BigScreen() {
         {shown === 'leaderboard' && <Reveal result={questionResult} players={active} hideStandings={!!gameState.standingsHidden} round={gameState.currentLevel} startedAt={gameState.questionStartTime} />}
         {shown === 'scoreboard' && <Scoreboard players={(gameState.finalLeaderboard || players).filter((p: any) => p.status === 'active')} columns={gameState.scoreColumns} />}
         {shown === 'podium' && gameState.manualFinish && <ManualFinish finalists={active} />}
-        {shown === 'podium' && !gameState.manualFinish && <Podium board={(gameState.finalLeaderboard || players).filter((p: any) => p.status !== 'disqualified')} />}
+        {shown === 'podium' && !gameState.manualFinish && <Podium board={byCumulative((gameState.finalLeaderboard || players).filter((p: any) => p.status !== 'disqualified'))} />}
       </div>
     </div>
   );
@@ -573,7 +573,7 @@ function Podium({ board }: { board: any[] }) {
                 <div className="comic-text" style={{ marginTop: '1.2vh', fontSize: place === 1 ? 'clamp(2rem, 3.2vw, 3.6rem)' : 'clamp(1.4rem, 2.2vw, 2.6rem)', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {p.name}
                 </div>
-                <span className="comic-badge light" style={{ fontSize: '1.1rem', marginTop: 6 }}>{p.score} pts</span>
+                <span className="comic-badge light" style={{ fontSize: '1.1rem', marginTop: 6 }}>{cumulative(p)} pts</span>
               </div>
             )}
             <div className="comic-panel" style={{
@@ -591,7 +591,7 @@ function Podium({ board }: { board: any[] }) {
         <Rise d={1600} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', padding: '2vh 0' }}>
           {rest.map((p: any, i: number) => (
             <span key={p.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '4px 14px 4px 4px', background: '#fff', color: '#111', border: '2px solid var(--t-ink)', borderRadius: 999, boxShadow: '2px 2px 0 var(--t-ink)', fontWeight: 700 }}>
-              <Avatar id={p.avatar} size={30} /> {i + 4}. {p.name} · {p.score}
+              <Avatar id={p.avatar} size={30} /> {i + 4}. {p.name} · {cumulative(p)}
             </span>
           ))}
         </Rise>
