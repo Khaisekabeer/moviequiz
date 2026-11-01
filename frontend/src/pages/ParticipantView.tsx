@@ -414,7 +414,7 @@ export default function ParticipantView() {
 
         <main style={{ ...screenPad, flex: 1, display: 'flex', flexDirection: 'column', paddingTop: 8, paddingBottom: 16, gap: 10 }}>
           <p className="comic-text" style={{ margin: '0 0 4px', textAlign: 'center', fontSize: '1.05rem' }}>
-            {myTurn ? (live.mode === 'buzzer' ? 'You buzzed first!' : "It's your turn!") : 'Read the question on the big screen'}
+            {myTurn ? (live.mode === 'buzzer' ? (live.out?.length ? "It's your turn to answer!" : 'You buzzed first!') : "It's your turn!") : 'Read the question on the big screen'}
           </p>
 
           {myTurn && spoken ? (
@@ -560,7 +560,7 @@ export default function ParticipantView() {
             </Rise>
           )}
           {gameState.standingsHidden && (
-            <Rise d={560}><span className="comic-badge light">Final round — standings at the end</span></Rise>
+            <Rise d={560}><span className="comic-badge light">{gameState.levelConfig?.mode === 'buzzer' || gameState.levelConfig?.mode === 'passing' ? 'Standings hidden for this round' : 'Final round — standings at the end'}</span></Rise>
           )}
         </main>
       </Screen>
@@ -597,12 +597,12 @@ function TurnWait({ live, playerId, onBuzz }: { live: any; playerId: string; onB
         </Burst>
         <div className="comic-panel" style={{ padding: '14px 20px' }}>
           <div className="comic-text" style={{ fontSize: '1.4rem', lineHeight: 1.15 }}>You buzzed {ordinal(place)}</div>
-          <p style={{ margin: '6px 0 0', fontSize: '0.95rem' }}>Watch the big screen.</p>
+          <p style={{ margin: '6px 0 0', fontSize: '0.95rem' }}>{lockedOut ? 'You had your go on this one.' : 'Watch the big screen.'}</p>
         </div>
       </div>
     );
   }
-  if (live.mode === 'buzzer' && live.phase === 'open' && !lockedOut) {
+  if (live.mode === 'buzzer' && !lockedOut) {
     return <div style={box}><button type="button" className="buzz-btn pop" onClick={onBuzz}>Buzz!</button></div>;
   }
   return (
@@ -613,7 +613,7 @@ function TurnWait({ live, playerId, onBuzz }: { live: any; playerId: string; onB
           {live.holder ? (live.mode === 'buzzer' ? `${live.holder.name} buzzed!` : `${live.holder.name}'s turn`) : "You're locked out"}
         </div>
         <p style={{ margin: '6px 0 0', fontSize: '0.95rem' }}>
-          {lockedOut ? 'You had your go on this one.' : live.mode === 'buzzer' ? 'If they miss, the buzzers open again.' : live.afterMiss === 'close' ? 'Your turn is coming.' : 'It may pass to you — be ready!'}
+          {lockedOut ? 'You had your go on this one.' : live.mode === 'buzzer' ? 'If they miss, the next in order answers.' : live.afterMiss === 'close' ? 'Your turn is coming.' : 'It may pass to you — be ready!'}
         </p>
       </div>
     </div>

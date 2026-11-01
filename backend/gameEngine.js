@@ -571,8 +571,9 @@ class GameEngine {
   }
 
   // A buzzer round kept by hand: nobody locks, and the screens show the order everyone pressed in.
+  // Every buzzer round shows the order everyone pressed in.
   pressOrder() {
-    return this.live?.mode === 'buzzer' && this.byHand();
+    return this.live?.mode === 'buzzer';
   }
 
   clearTimer() {
@@ -615,9 +616,21 @@ class GameEngine {
     if (live.mode === 'passing') {
       return this.levelInfo(this.currentLevel).afterMiss === 'close' ? { finished: true } : this.nextTurn();
     }
-    // Buzzer: open again for whoever is left, with the time that was on the clock.
+    // Buzzer: in scored rounds, the next in the order answers.
+    while (true) {
+      const nextId = live.presses.find(id => !live.out.has(id));
+      if (!nextId) break;
+      const nextPlayer = this.players[nextId];
+      if (nextPlayer && nextPlayer.status === 'active' && nextPlayer.connected) {
+        this.startTurn(nextPlayer, this.levelInfo(this.currentLevel).answerSeconds || 10);
+        return { finished: false };
+      }
+      live.out.add(nextId);
+    }
+
+    // Nobody waiting in the buzz order: reopen for whoever is left.
     Object.assign(live, { phase: 'open', holder: null });
-    const anyoneLeft = this.activePlayers().some(p => !live.out.has(p.id));
+    const anyoneLeft = this.activePlayers().some(p => !live.out.has(p.id) && !live.presses.includes(p.id));
     if (!anyoneLeft || (!live.untimed && live.remainingMs <= 0)) return { finished: true };
     if (live.untimed) {
       this.clearTimer();
@@ -680,23 +693,31 @@ class GameEngine {
     if (this.sd && !this.sd.ids.has(player.id)) return { error: 'This sudden death is between other players' };
     const { live } = this;
     if (this.state !== 'question' || live?.mode !== 'buzzer') return { error: 'The buzzer is not open' };
-    if (this.pressOrder()) return this.press(player);
-    if (live.out.has(player.id)) return { error: 'You already had your turn on this question' };
-    if (live.phase !== 'open') return { error: 'Someone else buzzed first' };
+    if (live.out.has(player.id) || live.presses.includes(player.id)) {
+      return { error: live.out.has(player.id) ? 'You already had your turn on this question' : 'Already buzzed' };
+    }
     const now = Date.now();
-    if (!live.untimed && now > this.questionEndsAt + ANSWER_GRACE_MS) return { error: "Time's up" };
-    live.remainingMs = live.untimed ? 0 : Math.max(0, this.questionEndsAt - now);
-    this.startTurn(player, this.levelInfo(this.currentLevel).answerSeconds);
-    return { success: true, player };
+    if (!live.untimed) {
+      const expired = live.phase === 'answering' ? live.remainingMs <= 0 : now > this.questionEndsAt + ANSWER_GRACE_MS;
+      if (expired) return { error: "Time's up" };
+    }
+    live.presses.push(player.id);
+    const position = live.presses.length;
+    if (this.byHand()) {
+      return { success: true, player, position };
+    }
+    if (!live.holder) {
+      if (!live.untimed && live.phase === 'open') {
+        live.remainingMs = Math.max(0, this.questionEndsAt - now);
+      }
+      this.startTurn(player, this.levelInfo(this.currentLevel).answerSeconds || 10);
+    }
+    return { success: true, player, position };
   }
 
   // Each player presses once, and the server's arrival order is the order on the screens.
   press(player) {
-    const { live } = this;
-    if (live.presses.includes(player.id)) return { error: 'Already buzzed' };
-    if (!live.untimed && Date.now() > this.questionEndsAt + ANSWER_GRACE_MS) return { error: "Time's up" };
-    live.presses.push(player.id);
-    return { success: true, player, position: live.presses.length };
+    return this.buzzAs(player);
   }
 
   passTurn(socketId) {
@@ -1060,6 +1081,15 @@ class GameEngine {
   }
 
   // A player's place among those still in (for their phone at each reveal).
+  isStandingsHidden() {
+    if (this.state === 'lobby' || this.state === 'podium') return false;
+    const mode = this.state === 'leaderboard' && this.lastResult?.mode
+      ? this.lastResult.mode
+      : this.levelInfo(this.currentLevel)?.mode;
+    if (mode === 'buzzer' || mode === 'passing') return true;
+    return !!(this.hideFinalStandings && this.levelNumbers().at(-1) === this.currentLevel);
+  }
+
   standingOf(player) {
     if (player.status !== 'active') return null;
     const ranked = this.activePlayers().sort(byStanding);
@@ -1105,8 +1135,7 @@ class GameEngine {
       playersLeft: this.activePlayers().length,
       cutPending: !!this.pendingCut,
       hideFinalStandings: this.hideFinalStandings,
-      standingsHidden: this.hideFinalStandings && this.state !== 'lobby' && this.state !== 'podium'
-        && this.levelNumbers().at(-1) === this.currentLevel,
+      standingsHidden: this.isStandingsHidden(),
       questionStartTime: this.questionStartTime,
       questionEndsAt: this.questionEndsAt,
       serverNow: Date.now(),

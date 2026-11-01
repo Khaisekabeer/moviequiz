@@ -39,8 +39,8 @@ In **Admin → Questions**, create four levels:
 In rounds 3 and 4 the system runs the question, the buzzer and the pass; the quiz master checks answers and keeps the scores.
 
 - **Round 3:** each question goes to the next finalist, whose phone shows a Pass button. The coordinator presses Correct, Wrong, Pass or No answer, or **Show answer** to reveal it and move on.
-- **Round 4:** phones show a Buzz button and nobody locks. Every finalist can press once, and the projector and host console list the order they pressed in, as the server received them. The quiz master takes answers in that order, and **Show answer** reveals the answer. A scored buzzer round (*Results kept by hand* off) and sudden death still go to one player at a time.
-- The coordinator's console shows the answer first. Nothing is scored, the projector shows no standings in these rounds, and the final screen lists the finalists without ranks while the quiz master announces the winners.
+- **Round 4:** phones show a Buzz button and nobody locks. Every finalist can press once, and the projector and host console list the order they pressed in, as the server received them. The quiz master takes answers in that order, and **Show answer** reveals the answer. In scored buzzer rounds the first presser answers; if wrong, the next in order answers.
+- The coordinator's console shows the answer first. The projector shows no standings in buzzer and turns rounds, and the final screen lists the finalists without ranks when results are kept by hand.
 
 Add spare multiple-choice questions with the *Spare question* tick for a tie at 5th place, and use **Sudden death** from the reveal.
 
@@ -258,7 +258,7 @@ The table shows the defaults. Each level can change them: **After a pass or wron
 
 In both special rounds there is no speed, first-to-answer or streak bonus; a correct answer still counts towards a player's streak. Players who didn't hold a question are unaffected by it. A question that moves on reaches at most 6 players (offline players are skipped). The host can end or cancel a question as usual. Buzzes are ranked by arrival at the server, so a player on slower internet is at a small disadvantage: put everyone on the same Wi-Fi and test with five people. Buzzers that act as a USB keyboard can be mapped to players in the host console.
 
-**Everyone starts this level at 0** gives a final its own scores: earlier rounds only pick the finalists. Both totals stay in the results CSV, one column per round. The host console's **Show scoreboard** puts a round-by-round table on the projector, and buzzer and turns rounds show live scores for up to 8 players.
+**Everyone starts this level at 0** gives a final its own scores: earlier rounds only pick the finalists. Both totals stay in the results CSV, one column per round. The host console's **Show scoreboard** puts a round-by-round table on the projector.
 
 **Sudden death:** from a reveal, the host console picks tied players and a spare question. It decides their order and changes no score. With options, the fastest correct answer wins; with a spoken spare, players buzz, the first correct answer wins, and a wrong answer hands the question to the others. If nobody gets it, play another spare. At a pending cut the winner moves above the line.
 

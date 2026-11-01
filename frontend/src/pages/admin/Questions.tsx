@@ -714,7 +714,7 @@ function LevelSettings({ level, round, questionCount, guard, onChanged }: {
         <p className="dim" style={{ fontSize: '0.8rem', margin: '6px 0 0' }}>
           {manualResults
             ? 'Buzzer: questions are spoken, with no options. Everyone can press once and nobody locks. The projector and host console show the order they pressed in, and the quiz master takes answers in that order.'
-            : "Buzzer: questions are spoken, with no options. The first to buzz gets the question and the other buzzers lock, and the coordinator marks the answer. A wrong answer locks that player out and reopens the question to the others, one attempt each. Without fixed points, a correct answer earns the question's points and a wrong one costs half."}
+            : "Buzzer: questions are spoken, with no options. Everyone can press once and the order is shown. The first presser answers; if wrong, the next in order answers. Without fixed points, a correct answer earns the question's points and a wrong one costs half."}
         </p>
       )}
       {mode === 'passing' && (

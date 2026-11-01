@@ -973,7 +973,6 @@ describe('buzzer and passing rounds over the socket', () => {
     assert.match((await ask(a, 'submit_answer', 'A')).error, /who buzzed/);
 
     assert.equal((await ask(a, 'buzz')).success, true);
-    assert.match((await ask(b, 'buzz')).error, /first/);
     await until(() => last(b, 'game_state')?.live?.holder?.name === 'Asha', 'everyone sees who buzzed');
     assert.equal(last(b, 'game_state').timerMax, 10);
 

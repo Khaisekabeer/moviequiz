@@ -267,12 +267,25 @@ const longest = (texts: string[] = []) => Math.max(0, ...texts.map(t => t.length
 // Buzzer and passing rounds: who has the question right now.
 function TurnPanel({ live, spoken }: { live: any; spoken: boolean }) {
   const buzzer = live.mode === 'buzzer';
+  const holder = live.holder;
   const first = live.presses?.[0];
-  const title = first ? `${first.name} was first!` : !live.holder ? 'Buzzers open!' : buzzer ? `${live.holder.name} buzzed!` : `${live.holder.name}'s turn`;
-  const detail = live.presses ? (first ? 'Keep buzzing — the order is on screen' : 'Everyone can buzz')
-    : !live.holder ? (live.out.length ? `${live.out.length} locked out — who's next?` : 'First to buzz answers')
-    : spoken ? 'Say your answer!' : buzzer ? 'Answering on their phone' : live.tries ? 'Passed on — half points' : 'Answer or pass';
-  const shown = first ?? live.holder;
+  const shown = holder ?? (live.presses ? first : null);
+  let title: string;
+  let detail: string;
+
+  if (holder) {
+    title = buzzer ? (live.out?.length ? `${holder.name} is up!` : `${holder.name} buzzed!`) : `${holder.name}'s turn`;
+    detail = spoken ? 'Say your answer!' : buzzer ? 'Answering on their phone' : live.tries ? 'Passed on — half points' : 'Answer or pass';
+  } else if (first) {
+    title = `${first.name} was first!`;
+    detail = 'Keep buzzing — the order is on screen';
+  } else if (live.presses) {
+    title = 'Buzzers open!';
+    detail = 'Everyone can buzz';
+  } else {
+    title = 'Buzzers open!';
+    detail = live.out?.length ? `${live.out.length} locked out — who's next?` : 'First to buzz answers';
+  }
   return (
     <div key={shown?.id ?? 'open'} className="comic-panel pop" style={{ flex: 1, maxWidth: 820, minWidth: 0, marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '1vw', padding: '1.2vh 1.2vw', boxShadow: '4px 4px 0 var(--t-ink)' }}>
       {shown && <Avatar id={shown.avatar} size="7.5vh" />}
@@ -329,26 +342,20 @@ function Question({ gameState, timeLeft, maxTime, answerCount, players }: {
         {gameState.questionEndsAt && <div className="timer-disc"><TimerRing value={timeLeft} max={maxTime} size={120} stroke={7} /></div>}
       </div>
 
-      {/* A buzzer round kept by hand: everyone who has pressed, in the order they pressed. */}
+      {/* Buzzer round: everyone who has pressed, in the order they pressed. */}
       {gameState.live?.presses?.length > 0 && (
         <ol style={{ display: 'flex', gap: '1vw', flexWrap: 'wrap', justifyContent: 'center', listStyle: 'none', margin: 0, padding: 0 }}>
-          {gameState.live.presses.map((p: any, i: number) => (
-            <li key={p.id} className="comic-badge light pop" style={{ fontSize: 'clamp(1.1rem, 1.8vw, 2.1rem)', textTransform: 'none', paddingLeft: 6 }}>
-              <span className="press-rank">{i + 1}</span><Avatar id={p.avatar} size={36} />{p.name}
-            </li>
-          ))}
+          {gameState.live.presses.map((p: any, i: number) => {
+            const isHolder = gameState.live.holder?.id === p.id;
+            const isOut = gameState.live.out?.includes(p.id);
+            return (
+              <li key={p.id} className={`comic-badge light pop${isOut ? ' dim' : ''}`} style={{ fontSize: 'clamp(1.1rem, 1.8vw, 2.1rem)', textTransform: 'none', paddingLeft: 6, opacity: isOut ? 0.45 : 1, textDecoration: isOut ? 'line-through' : 'none' }}>
+                <span className="press-rank">{i + 1}</span><Avatar id={p.avatar} size={36} />{p.name}
+                {isHolder && <span style={{ marginLeft: 6 }}>●</span>}
+              </li>
+            );
+          })}
         </ol>
-      )}
-
-      {/* Live score in buzzer and turns rounds, for the small field they are played with. */}
-      {gameState.live && !gameState.suddenDeath && !gameState.byHand && players.length <= 8 && (
-        <div style={{ display: 'flex', gap: '1vw', flexWrap: 'wrap', justifyContent: 'center' }}>
-          {players.map(p => (
-            <span key={p.id} className="comic-badge light" style={{ fontSize: 'clamp(0.9rem, 1.3vw, 1.5rem)', textTransform: 'none', paddingLeft: 6 }}>
-              <Avatar id={p.avatar} size={30} />{p.name} · <span className="tabular">{p.score}</span>
-            </span>
-          ))}
-        </div>
       )}
 
       <div style={{ flex: 1, minHeight: 0, display: 'flex', gap: '2.4vw' }}>
@@ -470,7 +477,7 @@ function Reveal({ result, players, hideStandings, round, startedAt }: { result: 
           <Burst style={{ padding: '5vh 6vw' }}>
             <h2 className="comic-title" style={{ fontSize: 'clamp(2.4rem, 5vw, 5.6rem)', textAlign: 'center' }}>Standings hidden</h2>
           </Burst>
-          <p className="comic-text" style={{ fontSize: 'clamp(1.1rem, 1.8vw, 2rem)', marginTop: '3vh' }}>Who wins? Find out at the final results.</p>
+          <p className="comic-text" style={{ fontSize: 'clamp(1.1rem, 1.8vw, 2rem)', marginTop: '3vh' }}>{roundEnd?.isFinal ? 'Who wins? Find out at the final results.' : 'Standings are hidden for this round.'}</p>
         </Centered>
       ) : (
         <>

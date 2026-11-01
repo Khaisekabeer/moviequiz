@@ -54,13 +54,14 @@ describe('buzzer round', () => {
     assert.match(engine.submitAnswer('s1', 'A').error, /buzzed/);
   });
 
-  test('the first buzz wins; the second is told so', () => {
+  test('all players can buzz and the order is kept; first buzz answers', () => {
     start([q(1, 'buzzer')], 2);
-    assert.equal(engine.buzz('s1').success, true);
-    assert.match(engine.buzz('s2').error, /first/);
+    assert.equal(engine.buzz('s1').position, 1);
+    assert.equal(engine.buzz('s2').position, 2);
     const live = engine.getState().live;
     assert.equal(live.phase, 'answering');
     assert.equal(live.holder.name, 'Player 1');
+    assert.deepEqual(live.presses.map(p => p.name), ['Player 1', 'Player 2']);
     assert.equal(engine.getState().timerMax, 10);
   });
 
@@ -371,11 +372,12 @@ describe('spoken questions (no options, the coordinator marks the answer)', () =
     assert.equal(engine.state, 'question');
   });
 
-  test('round 4: a buzz locks the others and the coordinator marks it', () => {
+  test('round 4: everyone can press, first to press answers, order is kept', () => {
     start([round4(1)], 3);
     assert.equal(engine.questionEndsAt, null, 'no fixed time limit');
-    assert.equal(engine.buzz('s1').success, true);
-    assert.match(engine.buzz('s2').error, /first/);
+    assert.equal(engine.buzz('s1').position, 1);
+    assert.equal(engine.buzz('s2').position, 2);
+    assert.equal(engine.getState().live.holder.name, 'Player 1');
     assert.equal(engine.getState().timerMax, 3);
     assert.equal(engine.judge('correct').finished, true);
     engine.endQuestion();
@@ -599,11 +601,42 @@ describe('results kept by hand (the buzzer and pass still run)', () => {
     assert.match(engine.buzz('s1').error, /Time/);
   });
 
-  test('a scored buzzer round still locks the others', () => {
+  test('a scored buzzer round lets all players press and shows the order', () => {
     start([q(1, 'buzzer')], 2);
-    assert.equal(engine.getState().live.presses, null);
+    assert.deepEqual(engine.getState().live.presses, []);
+    assert.equal(engine.buzz('s1').position, 1);
+    assert.equal(engine.buzz('s2').position, 2);
+    assert.deepEqual(engine.getState().live.presses.map(p => p.name), ['Player 1', 'Player 2']);
+    assert.equal(engine.getState().live.holder.name, 'Player 1');
+  });
+
+  test('a scored buzzer round moves to the next presser if the first is wrong', () => {
+    start([q(1, 'buzzer')], 3);
     engine.buzz('s1');
-    assert.match(engine.buzz('s2').error, /first/);
+    engine.buzz('s2');
+    engine.buzz('s3');
+    assert.equal(engine.getState().live.holder.name, 'Player 1');
+    const r1 = engine.submitAnswer('s1', 'B');
+    assert.equal(r1.finished, false);
+    assert.equal(engine.getState().live.holder.name, 'Player 2');
+    const r2 = engine.submitAnswer('s2', 'C');
+    assert.equal(r2.finished, false);
+    assert.equal(engine.getState().live.holder.name, 'Player 3');
+    const r3 = engine.submitAnswer('s3', 'A');
+    assert.equal(r3.finished, true);
+    engine.endQuestion();
+    assert.equal(byName(1).score, -500);
+    assert.equal(byName(2).score, -500);
+    assert.equal(byName(3).score, 1000);
+  });
+
+  test('no leaderboard in buzzer and turns rounds', () => {
+    start([q(1, 'buzzer')], 2);
+    assert.equal(engine.getState().standingsHidden, true);
+    start([q(1, 'passing')], 2);
+    assert.equal(engine.getState().standingsHidden, true);
+    start([q(1, 'standard')], 2);
+    assert.equal(engine.getState().standingsHidden, false);
   });
 
   test('no points, counts or round totals are recorded, however many press', () => {
@@ -767,9 +800,10 @@ describe('final scoreboard', () => {
 describe('physical buzzers and registered names', () => {
   test('a key press at the host console buzzes for that player', () => {
     start([q(1, 'buzzer')], 2);
-    assert.equal(engine.buzzFor(byName(2).id).success, true);
+    assert.equal(engine.buzzFor(byName(2).id).position, 1);
     assert.equal(engine.getState().live.holder.name, 'Player 2');
-    assert.match(engine.buzzFor(byName(1).id).error, /first/);
+    assert.equal(engine.buzzFor(byName(1).id).position, 2);
+    assert.match(engine.buzzFor(byName(2).id).error, /already/i);
   });
 
   test('two players with the same registered name are told apart by ticket', () => {

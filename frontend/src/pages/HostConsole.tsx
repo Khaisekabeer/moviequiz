@@ -418,7 +418,7 @@ export default function HostConsole() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="eyebrow eyebrow-heat">Live question</div>
                   <p style={{ fontSize: '1.2rem', fontWeight: 600, lineHeight: 1.35, margin: '8px 0 14px' }}>{gameState.currentQuestion?.text || 'Picture or clip question'}</p>
-                  {gameState.live?.presses ? <PressOrder presses={gameState.live.presses} /> : gameState.live && (
+                  {gameState.live?.presses ? <PressOrder presses={gameState.live.presses} out={gameState.live.out} holder={gameState.live.holder} /> : gameState.live && (
                     <p className="eyebrow eyebrow-heat" style={{ margin: '0 0 12px' }}>
                       {gameState.live.holder
                         ? `${gameState.live.holder.name} ${gameState.live.mode === 'buzzer' ? 'buzzed' : 'has the question'}`
@@ -453,7 +453,7 @@ export default function HostConsole() {
               onStart={(playerIds, questionId) => hostAction('sudden_death', { playerIds, questionId })} />
           )}
           {gameState?.levelConfig?.mode === 'buzzer' && ['intro', 'question', 'leaderboard'].includes(phase) && (
-            <BuzzerKeys players={players.filter(p => p.status === 'active')} open={gameState.live?.mode === 'buzzer' && gameState.live.phase === 'open'}
+            <BuzzerKeys players={players.filter(p => p.status === 'active')} open={gameState.live?.mode === 'buzzer' && phase === 'question'}
               onBuzz={playerId => hostAction('physical_buzz', { playerId })} />
           )}
           {phase !== 'lobby' && players.length > 0 && <PlayerDashboard players={players} />}
@@ -590,13 +590,21 @@ function CutReview({ cut, onAdjust, onConfirm }: { cut: any; onAdjust: (id: stri
 // Spoken questions: the answer, seen only here, and the coordinator's verdict. Nothing is scored
 // until one of these buttons is pressed.
 // A buzzer round kept by hand: who pressed, in the order the server received them.
-function PressOrder({ presses }: { presses: { id: string; name: string }[] }) {
+function PressOrder({ presses, out = [], holder }: { presses: { id: string; name: string }[]; out?: string[]; holder?: { id: string; name: string } | null }) {
   if (!presses.length) return <p className="eyebrow eyebrow-heat" style={{ margin: '0 0 12px' }}>Buzzers open · nobody yet</p>;
   return (
     <div style={{ margin: '0 0 12px' }}>
-      <div className="eyebrow eyebrow-heat">Buzz order</div>
+      <div className="eyebrow eyebrow-heat">Buzz order{holder ? ` · ${holder.name} answering` : ''}</div>
       <ol style={{ margin: '6px 0 0', paddingLeft: 26, listStyle: 'decimal', fontSize: '1.1rem', fontWeight: 700, lineHeight: 1.5 }}>
-        {presses.map(p => <li key={p.id}>{p.name}</li>)}
+        {presses.map(p => {
+          const isHolder = holder?.id === p.id;
+          const isOut = out.includes(p.id);
+          return (
+            <li key={p.id} style={{ opacity: isOut ? 0.45 : 1, textDecoration: isOut ? 'line-through' : 'none' }}>
+              {p.name} {isHolder ? '← answering' : isOut ? '(wrong)' : ''}
+            </li>
+          );
+        })}
       </ol>
     </div>
   );
@@ -612,11 +620,14 @@ function JudgePanel({ answer, live, manual, timeUp, onJudge }: {
       <div style={{ fontSize: '1.3rem', fontWeight: 700, marginTop: 4 }}>{answer.answer}</div>
       {answer.accepted && <div className="dim" style={{ fontSize: '0.9rem', marginTop: 2 }}>Also accept: {answer.accepted}</div>}
       {manual ? null : answering ? (
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
-          <button className="btn btn-heat" onClick={() => onJudge('correct')}>✓ Correct</button>
-          <button className="btn btn-danger" onClick={() => onJudge('wrong')}>✕ Wrong</button>
-          {live.mode === 'passing' && <button className="btn btn-ghost" onClick={() => onJudge('pass')}>Pass</button>}
-          <button className="btn btn-ghost" onClick={() => onJudge('timeout')}>No answer</button>
+        <div style={{ marginTop: 12 }}>
+          {live.holder && <div className="eyebrow eyebrow-heat" style={{ marginBottom: 6 }}>Marking {live.holder.name}:</div>}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button className="btn btn-heat" onClick={() => onJudge('correct')}>✓ Correct</button>
+            <button className="btn btn-danger" onClick={() => onJudge('wrong')}>✕ Wrong</button>
+            {live.mode === 'passing' && <button className="btn btn-ghost" onClick={() => onJudge('pass')}>Pass</button>}
+            <button className="btn btn-ghost" onClick={() => onJudge('timeout')}>No answer</button>
+          </div>
         </div>
       ) : (
         <p className="dim" style={{ margin: '10px 0 0', fontSize: '0.88rem' }}>
