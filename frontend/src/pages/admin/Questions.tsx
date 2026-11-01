@@ -625,7 +625,7 @@ function LevelSettings({ level, round, questionCount, guard, onChanged }: {
             </select>
           </div>
         )}
-        {mode === 'buzzer' && (
+        {mode === 'buzzer' && !manualResults && (
           <div className="form-row" style={{ flex: '0 1 150px' }}>
             <label className="eyebrow" htmlFor="lvl-answer">Seconds to answer</label>
             <input id="lvl-answer" className="field field-sm" type="number" min={1} max={120} value={answerSeconds} onChange={e => setAnswerSeconds(e.target.value)} required />
@@ -704,7 +704,9 @@ function LevelSettings({ level, round, questionCount, guard, onChanged }: {
       )}
       {mode === 'buzzer' && (
         <p className="dim" style={{ fontSize: '0.8rem', margin: '6px 0 0' }}>
-          Buzzer: the first to buzz gets the question and the other buzzers lock. A wrong answer locks that player out and reopens the question to the others, one attempt each. With options the player answers on their phone; spoken questions are marked by the coordinator. Without fixed points, a correct answer earns the question's points and a wrong one costs half.
+          {manualResults
+            ? 'Buzzer: everyone can press once and nobody locks. The projector and host console show the order they pressed in, and the quiz master takes answers in that order.'
+            : "Buzzer: the first to buzz gets the question and the other buzzers lock. A wrong answer locks that player out and reopens the question to the others, one attempt each. With options the player answers on their phone; spoken questions are marked by the coordinator. Without fixed points, a correct answer earns the question's points and a wrong one costs half."}
         </p>
       )}
       {mode === 'passing' && (

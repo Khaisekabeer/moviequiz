@@ -103,7 +103,7 @@
 .stage[data-staff] .pill-good { border-color: var(--good); }
 .stage[data-staff] .pill-bad { border-color: var(--bad); }
 
-/* ─── Sign-in: the navy marquee stage, with the player screens' rays ───────── */
+/* ─── Sign-in and loading: the navy marquee stage, with the player screens' rays ─ */
 .stage[data-staff='door'] {
   --hard: var(--gold);
   background-color: var(--navy);
@@ -114,3 +114,7 @@
 .stage[data-staff='door'] .btn:active:not(:disabled) { box-shadow: 1px 1px 0 var(--navy); }
 .stage[data-staff='door'] .btn-heat:hover:not(:disabled) { box-shadow: 3px 3px 0 var(--navy); }
 .stage[data-staff='door'] .field { box-shadow: 2px 2px 0 var(--navy); }
+
+.reel { width: min(32vw, 120px); animation: reel-spin 1.8s linear infinite; }
+@keyframes reel-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .reel { animation: none; } }

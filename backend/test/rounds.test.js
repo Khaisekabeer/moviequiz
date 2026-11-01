@@ -536,29 +536,68 @@ describe('results kept by hand (the buzzer and pass still run)', () => {
   const round4 = (id, extra = {}) => q(id, 'buzzer', { type: 'short', options: [], correctAnswer: 'Drishyam', accepted: 'Papanasam', manualResults: true, untimed: true, answerSeconds: 3, ...extra });
   const round3 = (id, extra = {}) => q(id, 'passing', { type: 'short', options: [], correctAnswer: 'Drishyam', manualResults: true, afterMiss: 'close', ...extra });
 
-  test('buzzer: first press wins, the others lock, wrong reopens, one attempt each', () => {
+  test('buzzer: nobody locks, everyone presses once, and the order is kept', () => {
     start([round4(1)], 3);
-    assert.equal(engine.buzz('s1').success, true);
-    assert.match(engine.buzz('s2').error, /first/);
-    assert.equal(engine.getState().live.holder.name, 'Player 1');
-    assert.equal(engine.judge('wrong').finished, false);
-    assert.match(engine.buzz('s1').error, /already/);
-    assert.equal(engine.buzz('s2').success, true);
-    assert.equal(engine.judge('correct').finished, true);
+    assert.deepEqual(engine.getState().live.presses, []);
+    assert.equal(engine.buzz('s2').position, 1);
+    assert.equal(engine.buzz('s3').position, 2);
+    assert.match(engine.buzz('s2').error, /Already/);
+    assert.equal(engine.buzz('s1').position, 3);
+    const { live } = engine.getState();
+    assert.deepEqual(live.presses.map(p => p.name), ['Player 2', 'Player 3', 'Player 1']);
+    assert.equal(live.holder, null);
+    assert.equal(live.phase, 'open');
   });
 
-  test('no points, counts or round totals are recorded, whatever the verdict', () => {
+  test('buzzer: there is nothing to mark, and the coordinator moves on', () => {
+    start([round4(1)], 2);
+    engine.buzz('s1');
+    assert.match(engine.judge('wrong').error, /Nobody/);
+    assert.equal(engine.getState().live.presses.length, 1);
+    assert.equal(engine.hostAnswer().answer, 'Drishyam');
+    assert.ok(engine.endQuestion());
+  });
+
+  test('a physical buzzer takes its place in the same order', () => {
+    start([round4(1)], 2);
+    assert.equal(engine.buzz('s2').position, 1);
+    assert.equal(engine.buzzFor(byName(1).id).position, 2);
+    assert.match(engine.buzzFor(byName(1).id).error, /Already/);
+  });
+
+  test('a disqualified player leaves the order and the rest move up', () => {
+    start([round4(1)], 3);
+    engine.buzz('s1');
+    engine.buzz('s2');
+    engine.disqualify(byName(1).id, 'test');
+    assert.deepEqual(engine.getState().live.presses.map(p => p.name), ['Player 2']);
+    assert.match(engine.buzz('s1').error, /out of the game/);
+  });
+
+  test('with a timer on, a press after the time is refused', () => {
+    start([round4(1, { untimed: false })], 2);
+    engine.questionEndsAt = Date.now() - 60000;
+    assert.match(engine.buzz('s1').error, /Time/);
+  });
+
+  test('a scored buzzer round still locks the others', () => {
+    start([q(1, 'buzzer')], 2);
+    assert.equal(engine.getState().live.presses, null);
+    engine.buzz('s1');
+    assert.match(engine.buzz('s2').error, /first/);
+  });
+
+  test('no points, counts or round totals are recorded, however many press', () => {
     start([round4(1, { scoring: { correct: 10, wrong: -5, timeout: 0 } })], 2);
     byName(1).score = 750;
     engine.buzz('s1');
-    engine.judge('wrong');
     engine.buzz('s2');
-    engine.judge('correct');
     const result = engine.endQuestion();
     assert.equal(result.byHand, true);
     assert.equal(result.mode, 'buzzer');
     assert.equal(byName(1).score, 750);
     assert.equal(byName(2).score, 0);
+    assert.deepEqual(engine.answers, {});
     assert.deepEqual(byName(2).roundPoints, {});
     assert.deepEqual(byName(2).answers, { correct: 0, wrong: 0, skipped: 0 });
   });
@@ -579,10 +618,10 @@ describe('results kept by hand (the buzzer and pass still run)', () => {
     assert.equal(engine.getState().byHand, true);
   });
 
-  test('a multiple-choice buzzer question by hand still works and records nothing', () => {
+  test('a multiple-choice buzzer question by hand is answered out loud too', () => {
     start([q(1, 'buzzer', { manualResults: true })], 1);
-    engine.buzz('s1');
-    assert.equal(engine.submitAnswer('s1', 'A').record.pointsEarned, 0);
+    assert.equal(engine.buzz('s1').position, 1);
+    assert.ok(engine.submitAnswer('s1', 'A').error);
     engine.endQuestion();
     assert.equal(byName(1).score, 0);
   });

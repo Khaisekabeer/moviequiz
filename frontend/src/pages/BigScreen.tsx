@@ -267,12 +267,15 @@ const longest = (texts: string[] = []) => Math.max(0, ...texts.map(t => t.length
 // Buzzer and passing rounds: who has the question right now.
 function TurnPanel({ live, spoken }: { live: any; spoken: boolean }) {
   const buzzer = live.mode === 'buzzer';
-  const title = !live.holder ? 'Buzzers open!' : buzzer ? `${live.holder.name} buzzed!` : `${live.holder.name}'s turn`;
-  const detail = !live.holder ? (live.out.length ? `${live.out.length} locked out — who's next?` : 'First to buzz answers')
+  const first = live.presses?.[0];
+  const title = first ? `${first.name} was first!` : !live.holder ? 'Buzzers open!' : buzzer ? `${live.holder.name} buzzed!` : `${live.holder.name}'s turn`;
+  const detail = live.presses ? (first ? 'Keep buzzing — the order is on screen' : 'Everyone can buzz')
+    : !live.holder ? (live.out.length ? `${live.out.length} locked out — who's next?` : 'First to buzz answers')
     : spoken ? 'Say your answer!' : buzzer ? 'Answering on their phone' : live.tries ? 'Passed on — half points' : 'Answer or pass';
+  const shown = first ?? live.holder;
   return (
-    <div key={live.holder?.id ?? 'open'} className="comic-panel pop" style={{ flex: 1, maxWidth: 820, minWidth: 0, marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '1vw', padding: '1.2vh 1.2vw', boxShadow: '4px 4px 0 var(--t-ink)' }}>
-      {live.holder && <Avatar id={live.holder.avatar} size="7.5vh" />}
+    <div key={shown?.id ?? 'open'} className="comic-panel pop" style={{ flex: 1, maxWidth: 820, minWidth: 0, marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '1vw', padding: '1.2vh 1.2vw', boxShadow: '4px 4px 0 var(--t-ink)' }}>
+      {shown && <Avatar id={shown.avatar} size="7.5vh" />}
       <div style={{ minWidth: 0 }}>
         <div className="comic-text" style={{ fontSize: title.length > 24 ? 'clamp(1.1rem, 1.8vw, 2.1rem)' : 'clamp(1.4rem, 2.4vw, 2.8rem)', lineHeight: 1.05, overflowWrap: 'anywhere' }}>{title}</div>
         <div className="comic-text" style={{ fontSize: 'clamp(0.9rem, 1.2vw, 1.3rem)', color: '#555' }}>{detail}</div>
@@ -325,6 +328,17 @@ function Question({ gameState, timeLeft, maxTime, answerCount, players }: {
         )}
         {gameState.questionEndsAt && <div className="timer-disc"><TimerRing value={timeLeft} max={maxTime} size={120} stroke={7} /></div>}
       </div>
+
+      {/* A buzzer round kept by hand: everyone who has pressed, in the order they pressed. */}
+      {gameState.live?.presses?.length > 0 && (
+        <ol style={{ display: 'flex', gap: '1vw', flexWrap: 'wrap', justifyContent: 'center', listStyle: 'none', margin: 0, padding: 0 }}>
+          {gameState.live.presses.map((p: any, i: number) => (
+            <li key={p.id} className="comic-badge light pop" style={{ fontSize: 'clamp(1.1rem, 1.8vw, 2.1rem)', textTransform: 'none', paddingLeft: 6 }}>
+              <span className="press-rank">{i + 1}</span><Avatar id={p.avatar} size={36} />{p.name}
+            </li>
+          ))}
+        </ol>
+      )}
 
       {/* Live score in buzzer and turns rounds, for the small field they are played with. */}
       {gameState.live && !gameState.suddenDeath && !gameState.byHand && players.length <= 8 && (

@@ -418,7 +418,7 @@ export default function HostConsole() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="eyebrow eyebrow-heat">Live question</div>
                   <p style={{ fontSize: '1.2rem', fontWeight: 600, lineHeight: 1.35, margin: '8px 0 14px' }}>{gameState.currentQuestion?.text || 'Picture or clip question'}</p>
-                  {gameState.live && (
+                  {gameState.live?.presses ? <PressOrder presses={gameState.live.presses} /> : gameState.live && (
                     <p className="eyebrow eyebrow-heat" style={{ margin: '0 0 12px' }}>
                       {gameState.live.holder
                         ? `${gameState.live.holder.name} ${gameState.live.mode === 'buzzer' ? 'buzzed' : 'has the question'}`
@@ -589,6 +589,19 @@ function CutReview({ cut, onAdjust, onConfirm }: { cut: any; onAdjust: (id: stri
 
 // Spoken questions: the answer, seen only here, and the coordinator's verdict. Nothing is scored
 // until one of these buttons is pressed.
+// A buzzer round kept by hand: who pressed, in the order the server received them.
+function PressOrder({ presses }: { presses: { id: string; name: string }[] }) {
+  if (!presses.length) return <p className="eyebrow eyebrow-heat" style={{ margin: '0 0 12px' }}>Buzzers open · nobody yet</p>;
+  return (
+    <div style={{ margin: '0 0 12px' }}>
+      <div className="eyebrow eyebrow-heat">Buzz order</div>
+      <ol style={{ margin: '6px 0 0', paddingLeft: 26, listStyle: 'decimal', fontSize: '1.1rem', fontWeight: 700, lineHeight: 1.5 }}>
+        {presses.map(p => <li key={p.id}>{p.name}</li>)}
+      </ol>
+    </div>
+  );
+}
+
 function JudgePanel({ answer, live, manual, timeUp, onJudge }: {
   answer: { answer: string; accepted: string }; live: any; manual: boolean; timeUp: boolean; onJudge: (verdict: string) => void;
 }) {
@@ -606,7 +619,9 @@ function JudgePanel({ answer, live, manual, timeUp, onJudge }: {
           <button className="btn btn-ghost" onClick={() => onJudge('timeout')}>No answer</button>
         </div>
       ) : (
-        <p className="dim" style={{ margin: '10px 0 0', fontSize: '0.88rem' }}>Waiting for a buzz. If nobody buzzes, press End now &amp; reveal.</p>
+        <p className="dim" style={{ margin: '10px 0 0', fontSize: '0.88rem' }}>
+          {live?.presses ? 'Everyone can buzz. Take answers in the order above, then press Show answer.' : 'Waiting for a buzz. If nobody buzzes, press End now & reveal.'}
+        </p>
       )}
       {answering && timeUp && <p className="eyebrow eyebrow-heat" style={{ margin: '10px 0 0' }}>Time is up — mark the answer</p>}
     </div>

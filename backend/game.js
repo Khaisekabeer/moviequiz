@@ -352,7 +352,7 @@ function createGame(io, { serverInfo = () => ({ lanAddresses: [], port: null }) 
     physical_buzz(callback, data) {
       const result = gameEngine.buzzFor(data?.playerId);
       if (result.error) return callback(result);
-      logEvent('buzz', { player: result.player, detail: { physical: true } });
+      logEvent('buzz', { player: result.player, detail: { physical: true, position: result.position } });
       callback({ success: true });
       applyTurn({ finished: false });
     },
@@ -620,7 +620,7 @@ function createGame(io, { serverInfo = () => ({ lanAddresses: [], port: null }) 
         if (player && underLimit(player, 'buzz_rejected', 5)) logEvent('buzz_rejected', { player, socket, detail: { reason: result.error } });
         return callback({ error: result.error });
       }
-      logEvent('buzz', { player, socket });
+      logEvent('buzz', { player, socket, detail: { position: result.position } });
       callback({ success: true });
       applyTurn({ finished: false });
     });

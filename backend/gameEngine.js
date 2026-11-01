@@ -544,7 +544,7 @@ class GameEngine {
   // and questionEndsAt is its deadline. Scores still change only at the reveal (endQuestion).
   beginTurns(mode, q) {
     const untimed = mode === 'buzzer' && this.levelInfo(this.currentLevel).untimed;
-    this.live = { mode, phase: 'open', holder: null, out: new Set(), tries: 0, remainingMs: 0, turnStartedAt: null, order: [], turn: -1, untimed };
+    this.live = { mode, phase: 'open', holder: null, out: new Set(), tries: 0, remainingMs: 0, turnStartedAt: null, order: [], turn: -1, untimed, presses: [] };
     if (untimed) this.clearTimer();
     if (mode === 'buzzer') return { finished: false };
     // Everyone gets the first go in turn: the starting player moves along with each question.
@@ -564,6 +564,11 @@ class GameEngine {
   // Any round whose results the quiz master keeps by hand.
   byHand() {
     return !this.sd && this.levelInfo(this.currentLevel).manualResults;
+  }
+
+  // A buzzer round kept by hand: nobody locks, and the screens show the order everyone pressed in.
+  pressOrder() {
+    return this.live?.mode === 'buzzer' && this.byHand();
   }
 
   clearTimer() {
@@ -671,6 +676,7 @@ class GameEngine {
     if (this.sd && !this.sd.ids.has(player.id)) return { error: 'This sudden death is between other players' };
     const { live } = this;
     if (this.state !== 'question' || live?.mode !== 'buzzer') return { error: 'The buzzer is not open' };
+    if (this.pressOrder()) return this.press(player);
     if (live.out.has(player.id)) return { error: 'You already had your turn on this question' };
     if (live.phase !== 'open') return { error: 'Someone else buzzed first' };
     const now = Date.now();
@@ -678,6 +684,15 @@ class GameEngine {
     live.remainingMs = live.untimed ? 0 : Math.max(0, this.questionEndsAt - now);
     this.startTurn(player, this.levelInfo(this.currentLevel).answerSeconds);
     return { success: true, player };
+  }
+
+  // Each player presses once, and the server's arrival order is the order on the screens.
+  press(player) {
+    const { live } = this;
+    if (live.presses.includes(player.id)) return { error: 'Already buzzed' };
+    if (!live.untimed && Date.now() > this.questionEndsAt + ANSWER_GRACE_MS) return { error: "Time's up" };
+    live.presses.push(player.id);
+    return { success: true, player, position: live.presses.length };
   }
 
   passTurn(socketId) {
@@ -852,6 +867,9 @@ class GameEngine {
       out: [...live.out],
       tries: live.tries,
       afterMiss: this.levelInfo(this.currentLevel).afterMiss,
+      presses: this.pressOrder()
+        ? live.presses.map(id => this.players[id]).filter(p => p?.status === 'active').map(p => ({ id: p.id, name: p.name, avatar: p.avatar }))
+        : null,
     };
   }
 

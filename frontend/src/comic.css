@@ -285,6 +285,17 @@
   cursor: pointer;
   touch-action: manipulation;
 }
+.press-rank {
+  display: inline-grid;
+  place-items: center;
+  width: 1.7em;
+  height: 1.7em;
+  margin-right: 0.35em;
+  border-radius: 50%;
+  background: var(--t-accent, #e5383b);
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
 .buzz-btn:active { transform: translateY(8px); box-shadow: 0 2px 0 var(--t-ink); }
 
 /* Question picture: framed like a comic panel. */

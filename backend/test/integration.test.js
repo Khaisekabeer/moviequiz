@@ -999,6 +999,29 @@ describe('show-only rounds over the socket', () => {
 describe('spoken questions over the socket', () => {
   const spoken = { type: 'short', options: [], correctAnswer: 'Drishyam', accepted: 'Papanasam', mode: 'buzzer', untimed: true, answerSeconds: 3, scoring: { correct: 10, wrong: -5, timeout: 0 } };
 
+  test('buzzers kept by hand: everyone presses, and every screen gets the order', async () => {
+    engine.setQuestions([q(1, 1, { ...spoken, scoring: null, manualResults: true })]);
+    const h = await host();
+    const a = await player('Asha');
+    const b = await player('Bala');
+    const screen = await client();
+    await ask(screen, 'join_role', 'bigscreen');
+    await act(h, 'start_game');
+    await act(h, 'start_question');
+
+    assert.equal((await ask(b, 'buzz')).success, true);
+    const asha = Object.values(engine.players).find(p => p.name === 'Asha');
+    assert.equal((await act(h, 'physical_buzz', { playerId: asha.id })).success, true);
+    assert.match((await ask(a, 'buzz')).error, /Already/);
+
+    for (const [name, s] of [['projector', screen], ['phone', a], ['host', h]]) {
+      await until(() => last(s, 'game_state')?.live?.presses?.length === 2, `the order reaches the ${name}`);
+      assert.deepEqual(last(s, 'game_state').live.presses.map(p => p.name), ['Bala', 'Asha']);
+    }
+    assert.match((await act(h, 'judge_answer', { verdict: 'wrong' })).error, /Nobody/);
+    assert.equal(last(h, 'host_answer').answer, 'Drishyam');
+  });
+
   test('the coordinator marks a buzzed answer; the answer reaches only the host', async () => {
     engine.setQuestions([q(1, 1, spoken)]);
     const h = await host();

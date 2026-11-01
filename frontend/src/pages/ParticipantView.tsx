@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 import { useSocket } from '../contexts/SocketContext';
 import { useCountdown } from '../hooks/useCountdown';
-import { Avatar, Burst, ComicBg, Rise, Spinner, TimerRing, VyuhamLogo, OPTION_LABELS, ROUND_LABEL, roundRule } from '../components/ui';
+import { Avatar, Burst, ComicBg, Rise, Spinner, TimerRing, VyuhamLogo, OPTION_LABELS, ROUND_LABEL, roundRule, ordinal } from '../components/ui';
 import { API_BASE } from '../lib/api';
 import { avatarChoices } from '../lib/avatar';
 import confetti from 'canvas-confetti';
@@ -588,6 +588,20 @@ function WatchTheScreen({ theme, title, detail }: { theme: string; title: string
 function TurnWait({ live, playerId, onBuzz }: { live: any; playerId: string; onBuzz: () => void }) {
   const lockedOut = live.out.includes(playerId);
   const box: CSSProperties = { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, textAlign: 'center' };
+  if (live.presses?.some((p: any) => p.id === playerId)) {
+    const place = live.presses.findIndex((p: any) => p.id === playerId) + 1;
+    return (
+      <div style={box}>
+        <Burst style={{ padding: '30px 34px 34px' }}>
+          <h1 className="comic-title slam" style={{ fontSize: 'clamp(2.8rem, 15vw, 4.4rem)', textAlign: 'center' }}>{ordinal(place)}!</h1>
+        </Burst>
+        <div className="comic-panel" style={{ padding: '14px 20px' }}>
+          <div className="comic-text" style={{ fontSize: '1.4rem', lineHeight: 1.15 }}>You buzzed {ordinal(place)}</div>
+          <p style={{ margin: '6px 0 0', fontSize: '0.95rem' }}>Watch the big screen.</p>
+        </div>
+      </div>
+    );
+  }
   if (live.mode === 'buzzer' && live.phase === 'open' && !lockedOut) {
     return <div style={box}><button type="button" className="buzz-btn pop" onClick={onBuzz}>Buzz!</button></div>;
   }

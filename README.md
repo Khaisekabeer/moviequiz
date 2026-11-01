@@ -39,7 +39,7 @@ In **Admin → Questions**, create four levels:
 In rounds 3 and 4 the system runs the question, the buzzer and the pass; the quiz master checks answers and keeps the scores.
 
 - **Round 3:** each question goes to the next finalist, whose phone shows a Pass button. The coordinator presses Correct, Wrong, Pass or No answer, or **Show answer** to reveal it and move on.
-- **Round 4:** phones show a Buzz button. The first buzz locks the others and the projector shows who it was. **Wrong** reopens the buzzers for the rest, one attempt each. **Correct** or **Show answer** reveals the answer.
+- **Round 4:** phones show a Buzz button and nobody locks. Every finalist can press once, and the projector and host console list the order they pressed in, as the server received them. The quiz master takes answers in that order, and **Show answer** reveals the answer. A scored buzzer round (*Results kept by hand* off) and sudden death still go to one player at a time.
 - The coordinator's console shows the answer first. Nothing is scored, the projector shows no standings in these rounds, and the final screen lists the finalists without ranks while the quiz master announces the winners.
 
 Add spare multiple-choice questions with the *Spare question* tick for a tie at 5th place, and use **Sudden death** from the reveal.

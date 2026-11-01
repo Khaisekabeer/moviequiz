@@ -3,12 +3,14 @@ import QRCode from 'qrcode';
 import { avatarUri } from '../lib/avatar';
 
 export const OPTION_LABELS = ['A', 'B', 'C', 'D'];
+
+export const ordinal = (n: number) => `${n}${[, 'st', 'nd', 'rd'][n % 100 < 11 || n % 100 > 13 ? n % 10 : 0] ?? 'th'}`;
 // Round types other than a standard round, and how they are explained to players.
 export const ROUND_LABEL: Record<string, string> = { buzzer: '🔔 Buzzer round', passing: '🎯 Turns round', display: '🎬 On stage' };
 const signed = (n: number) => `${n > 0 ? '+' : ''}${n}`;
 export function roundRule(config: any): string {
   if (config?.mode === 'display') return 'Answers are given out loud. The quiz master keeps the score.';
-  if (config?.manualResults) return `${config.mode === 'buzzer' ? 'First to buzz answers out loud.' : 'Answer out loud or pass.'} The quiz master keeps the score.`;
+  if (config?.manualResults) return `${config.mode === 'buzzer' ? 'Everyone can buzz. The screen shows the order.' : 'Answer out loud or pass.'} The quiz master keeps the score.`;
   const points = config?.scoring;
   if (config?.mode === 'buzzer') {
     return `First to buzz answers. ${points ? `Correct ${signed(points.correct)}, wrong ${signed(points.wrong)}.` : 'A wrong answer costs half the points.'}`;
@@ -106,10 +108,13 @@ export function Toast({ msg }: { msg: string }) {
 
 export function Spinner({ label }: { label: string }) {
   return (
-    <div className="stage stage-grid" style={{ alignItems: 'center', justifyContent: 'center' }}>
-      <Rings size="min(90vw, 520px)" style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} />
-      <BrandMark className="brand-mark brand-mark-lg" />
-      <p className="eyebrow" style={{ marginTop: 18 }}>{label}</p>
+    <div className="stage" data-staff="door" style={{ alignItems: 'center', justifyContent: 'center' }}>
+      <svg className="reel" viewBox="0 0 64 64" aria-hidden="true">
+        <circle cx="32" cy="32" r="30" fill="#ffcd4d" />
+        {[0, 72, 144, 216, 288].map(a => <circle key={a} cx="32" cy="14" r="7" fill="#101a3a" transform={`rotate(${a} 32 32)`} />)}
+        <circle cx="32" cy="32" r="4" fill="#101a3a" />
+      </svg>
+      <p className="comic-title" style={{ marginTop: 20, fontSize: 'clamp(1.6rem, 5vw, 2.4rem)', color: '#ffcd4d' }}>{label}</p>
     </div>
   );
 }
