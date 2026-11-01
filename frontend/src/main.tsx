@@ -13,6 +13,7 @@ import '@fontsource/instrument-sans/latin-700'
 import '@fontsource/luckiest-guy/latin-400'
 import './index.css'
 import './comic.css'
+import './staff.css'
 
 import { SocketProvider } from './contexts/SocketContext'
 

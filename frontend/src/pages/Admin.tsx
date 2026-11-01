@@ -47,7 +47,7 @@ export default function Admin() {
   if (!current) return <StaffLogin />;
 
   return (
-    <div className="stage">
+    <div className="stage" data-staff>
       <header style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px clamp(16px, 3vw, 36px)', borderBottom: '1px solid var(--line)', flexWrap: 'wrap' }}>
         <Brand />
         <span style={{ flex: 1 }} />

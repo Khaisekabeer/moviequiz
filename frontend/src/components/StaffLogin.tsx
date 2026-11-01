@@ -88,7 +88,7 @@ export default function StaffLogin({ title = 'Staff', accent = 'Sign in', note }
   };
 
   return (
-    <div className="stage stage-grid" style={{ alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+    <div className="stage stage-grid" data-staff="door" style={{ alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       <Rings size="min(140vw, 820px)" style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} />
       <Rise className="panel panel-lg bracketed" style={{ width: '100%', maxWidth: 420, padding: '36px 32px' }}>
         <Brand />

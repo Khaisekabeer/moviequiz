@@ -2,8 +2,9 @@
 /* Fonts are self-hosted via @fontsource imports in main.tsx (work without internet). */
 
 /* ════════════════════════════════════════════════════════════════════════════
-   TECHSPRINT · Vyuham '26 — clean white, monochrome
-   White surfaces, near-black ink, concentric-ring motif in soft grey.
+   Movie Quiz · Vyuham '26 — base styles
+   Neutral tokens and components. comic.css themes the player and projector
+   screens; staff.css themes the admin, host console and sign-in pages.
    Colour is reserved for meaning: A–D answers and correct/wrong.
    Token names: --ink-* are backgrounds/surfaces, --bone-* are text.
    ════════════════════════════════════════════════════════════════════════════ */

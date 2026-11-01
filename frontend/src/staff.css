@@ -1,0 +1,116 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Staff pages (admin, host console, sign-in): the movie night look, calm enough
+   for long sessions. The comic build from comic.css in the marquee and popcorn
+   colours: cream paper, navy ink, thick outlines, hard shadows, comic headings.
+   A page opts in with data-staff; data-staff="door" is the navy sign-in stage.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.stage[data-staff] {
+  --gold: #ffcd4d;
+  --navy: #101a3a;
+  --navy-ray: #16244e;
+  --cream: #fff3d6;
+  --hard: var(--navy);
+
+  --ink-0: #fffdf6;
+  --ink-1: #fff8e8;
+  --ink-2: #ffeec6;
+  --ink-3: #ffe2a3;
+  --line: rgba(16, 26, 58, 0.16);
+  --line-strong: rgba(16, 26, 58, 0.55);
+  --bone: var(--navy);
+  --bone-dim: #434d78;
+  --bone-faint: #626a8f;
+  --ring: rgba(16, 26, 58, 0.25);
+  --heat: #d62828;
+  --good: #15803d;
+  --bad: #c1121f;
+  --font-display: var(--font-comic);
+  --radius: 12px;
+
+  color: var(--bone);
+  background-color: var(--cream);
+  background-image: radial-gradient(rgba(214, 40, 40, 0.13) 1.3px, transparent 1.5px);
+  background-size: 15px 15px;
+}
+
+/* The tech quiz's rings, grid and corner brackets don't belong here. */
+.stage[data-staff].stage-grid::before,
+.stage[data-staff] .rings,
+.stage[data-staff] .bracketed::before,
+.stage[data-staff] .bracketed::after { display: none; }
+
+/* ─── Headings ─────────────────────────────────────────────────────────────── */
+.stage[data-staff] .display,
+.stage[data-staff] .stat-value,
+.stage[data-staff] .brand { font-weight: 400; letter-spacing: 0.02em; }
+.stage[data-staff] .display { color: var(--heat); line-height: 0.95; }
+.stage[data-staff] h2 { font-family: var(--font-comic); font-weight: 400; letter-spacing: 0.03em; }
+.stage[data-staff] .eyebrow { font-weight: 600; }
+
+/* ─── Top bar: the marquee ─────────────────────────────────────────────────── */
+.stage[data-staff] > header {
+  --bone: #fff6df;
+  --bone-dim: #cfd4e8;
+  --ink-0: var(--navy);
+  --line-strong: rgba(255, 246, 223, 0.6);
+  --hard: rgba(255, 205, 77, 0.55);
+  background: var(--navy);
+  color: var(--bone);
+  border-bottom: 4px solid var(--gold) !important;
+}
+.stage[data-staff] > header .brand { color: var(--gold); }
+.stage[data-staff] > header .brand-mark { filter: brightness(1.7); }
+.stage[data-staff] > header .pill-dark { background: var(--gold); color: var(--navy); border-color: var(--gold); }
+
+/* ─── Panels ───────────────────────────────────────────────────────────────── */
+.stage[data-staff] .panel,
+.stage[data-staff] .panel-lg {
+  background: var(--ink-0);
+  border: 3px solid var(--navy);
+  border-radius: 16px;
+  box-shadow: 6px 6px 0 var(--hard);
+}
+
+/* ─── Buttons ──────────────────────────────────────────────────────────────── */
+.stage[data-staff] .btn {
+  border: 2.5px solid var(--bone);
+  box-shadow: 3px 3px 0 var(--hard);
+  transition: transform 0.1s var(--ease-out), box-shadow 0.1s var(--ease-out), filter 0.2s;
+}
+.stage[data-staff] .btn:active:not(:disabled) { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--hard); }
+.stage[data-staff] .btn-heat { background: var(--heat); color: #fff; }
+.stage[data-staff] .btn-heat:hover:not(:disabled) { background: var(--heat); filter: brightness(1.1); box-shadow: 3px 3px 0 var(--hard); }
+.stage[data-staff] .btn-ghost:hover:not(:disabled) { background: var(--ink-2); }
+.stage[data-staff] > header .btn-ghost:hover:not(:disabled) { background: var(--navy-ray); }
+.stage[data-staff] .btn-danger { border-color: var(--bad); box-shadow: 3px 3px 0 var(--bad); }
+.stage[data-staff] > header .btn-danger { background: #fff6df; }
+
+/* ─── Fields ───────────────────────────────────────────────────────────────── */
+.stage[data-staff] .field { background: #fff; border: 2.5px solid var(--navy); box-shadow: 2px 2px 0 var(--hard); }
+.stage[data-staff] .field:focus { border-color: var(--heat); box-shadow: 0 0 0 4px rgba(255, 205, 77, 0.75); }
+
+/* ─── Tabs: tickets along the top ──────────────────────────────────────────── */
+.stage[data-staff] .tabs { background: var(--navy); border-radius: 14px; padding: 6px; gap: 6px; }
+.stage[data-staff] .tab { color: #fff6df; }
+.stage[data-staff] .tab:hover { color: var(--gold); }
+.stage[data-staff] .tab.active { background: var(--gold); color: var(--navy); box-shadow: none; }
+.stage[data-staff] .tab:focus-visible { outline: 3px solid #fff6df; outline-offset: 1px; }
+
+/* ─── Tables and pills ─────────────────────────────────────────────────────── */
+.stage[data-staff] .table th { color: var(--bone-dim); border-bottom: 2px solid var(--navy); }
+.stage[data-staff] .pill { border: 2px solid var(--navy); }
+.stage[data-staff] .pill-good { border-color: var(--good); }
+.stage[data-staff] .pill-bad { border-color: var(--bad); }
+
+/* ─── Sign-in: the navy marquee stage, with the player screens' rays ───────── */
+.stage[data-staff='door'] {
+  --hard: var(--gold);
+  background-color: var(--navy);
+  background-image: repeating-conic-gradient(from 0deg at 50% 45%, var(--navy) 0 9deg, var(--navy-ray) 9deg 18deg);
+  background-size: auto;
+}
+.stage[data-staff='door'] .btn { box-shadow: 3px 3px 0 var(--navy); }
+.stage[data-staff='door'] .btn:active:not(:disabled) { box-shadow: 1px 1px 0 var(--navy); }
+.stage[data-staff='door'] .btn-heat:hover:not(:disabled) { box-shadow: 3px 3px 0 var(--navy); }
+.stage[data-staff='door'] .field { box-shadow: 2px 2px 0 var(--navy); }

@@ -171,7 +171,7 @@ export default function HostConsole() {
   }
   if (!token) {
     return (
-      <div className="stage" style={{ alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div className="stage" data-staff="door" style={{ alignItems: 'center', justifyContent: 'center', padding: 20 }}>
         <SharedPanel bracketed style={{ maxWidth: 420, textAlign: 'center', padding: '32px 28px' }}>
           <h1 className="display" style={{ fontSize: '2.4rem', margin: '0 0 10px' }}>No access</h1>
           <p className="dim" style={{ margin: '0 0 20px' }}>
@@ -249,7 +249,7 @@ export default function HostConsole() {
   );
 
   return (
-    <div className="stage" data-level={level}>
+    <div className="stage" data-staff data-level={level}>
       {toast && <Toast msg={toast} />}
 
       <header style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '14px clamp(16px, 3vw, 36px)', borderBottom: '1px solid var(--line)', flexWrap: 'wrap' }}>
