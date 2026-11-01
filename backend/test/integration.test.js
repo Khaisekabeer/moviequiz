@@ -32,6 +32,10 @@ const known = {
   deleteSession: async hash => { sessions.delete(hash); },
   setSessionVault: async () => {},
   findStaffForLogin: async name => staffRows.get(name) ?? null,
+  getStaffRow: async id => [...staffRows.values()].find(s => s.id === id) ?? null,
+  createStaff: async row => { const saved = { id: uuid(), active: true, ...row }; staffRows.set(row.username, saved); return saved; },
+  updateStaff: async (id, fields) => Object.assign([...staffRows.values()].find(s => s.id === id), fields),
+  countActiveAdmins: async () => [...staffRows.values()].filter(s => s.role === 'admin' && s.active && s.quiz !== 'tech').length,
   getSetting: async key => settingsMap.get(key) ?? null,
   setSetting: async (key, value) => { settingsMap.set(key, value); },
   deleteSetting: async key => { settingsMap.delete(key); },
@@ -203,6 +207,79 @@ describe('API access control', () => {
     settingsMap.set('otp:someone', { otpHash: 'x' });
     const body = await (await call('GET', '/config')).json();
     assert.deepEqual(Object.keys(body).sort(), ['gameServerUrl', 'requireCheckin']);
+  });
+});
+
+describe('staff of each quiz', () => {
+  const account = async (username, quiz, role = 'coordinator') => {
+    const row = { id: uuid(), username, display_name: username, role, quiz, active: true, password_hash: await auth.hashSecret('long-enough-1') };
+    staffRows.set(username, row);
+    return row;
+  };
+  const login = (username, password = 'long-enough-1') => call('POST', '/auth/login', { body: { username, password } });
+
+  test('movie and both accounts sign in; a tech account is told so only with the right password', async () => {
+    await account('movie@test.example', 'movie');
+    await account('both@test.example', 'both');
+    await account('tech@test.example', 'tech');
+    assert.equal((await login('movie@test.example')).status, 200);
+    assert.equal((await login('both@test.example')).status, 200);
+    const refused = await login('tech@test.example');
+    assert.equal(refused.status, 403);
+    assert.match((await refused.json()).error, /isn't set up for the movie quiz/);
+    const wrong = await login('tech@test.example', 'not-the-password');
+    assert.equal(wrong.status, 401);
+    assert.equal((await wrong.json()).error, 'Wrong username or password');
+  });
+
+  test('a session the tech quiz started in the shared table does not work here', async () => {
+    const row = await account('tech-session@test.example', 'tech');
+    const token = 'c'.repeat(64);
+    const hash = crypto.createHash('sha256').update(token).digest('hex');
+    sessions.set(hash, { token_hash: hash, staff_id: row.id, expires_at: new Date(Date.now() + 3600000).toISOString() });
+    assert.equal((await call('GET', '/auth/me', { token })).status, 401);
+    row.quiz = 'both';
+    assert.equal((await call('GET', '/auth/me', { token })).status, 200);
+  });
+
+  test('a tech account gets no reset code from this site', async () => {
+    await call('POST', '/auth/forgot-password', { body: { email: 'tech@test.example' } });
+    assert.equal(mailed.length, 0);
+  });
+
+  test('new accounts are for the movie quiz unless the admin chooses', async () => {
+    const add = body => call('POST', '/staff', { token: tokens.admin, body: { displayName: 'New', role: 'volunteer', password: 'long-enough-1', ...body } });
+    assert.equal(staffRows.get('new-movie@test.example'), undefined);
+    assert.equal((await add({ username: 'new-movie@test.example' })).status, 201);
+    assert.equal(staffRows.get('new-movie@test.example').quiz, 'movie');
+    assert.equal((await add({ username: 'new-both@test.example', quiz: 'both' })).status, 201);
+    assert.equal(staffRows.get('new-both@test.example').quiz, 'both');
+    assert.equal((await add({ username: 'new-bad@test.example', quiz: 'sports' })).status, 400);
+  });
+
+  test('moving someone off this quiz signs them out at once', async () => {
+    const row = await account('moved@test.example', 'movie');
+    const token = await auth.createSession(row);
+    const res = await call('PATCH', `/staff/${row.id}`, { token: tokens.admin, body: { quiz: 'tech' } });
+    assert.equal(res.status, 200);
+    assert.equal((await call('GET', '/auth/me', { token })).status, 401);
+    assert.equal((await login('moved@test.example')).status, 403);
+  });
+
+  test("an admin can't move themselves, or remove the last admin of this quiz", async () => {
+    const self = await call('PATCH', `/staff/${staffId.admin}`, { token: tokens.admin, body: { quiz: 'tech' } });
+    assert.match((await self.json()).error, /your own quiz/);
+    const techAdmin = await account('tech-admin@test.example', 'tech', 'admin');
+    const other = await account('other-admin@test.example', 'movie', 'admin');
+    assert.equal((await call('PATCH', `/staff/${other.id}`, { token: tokens.admin, body: { quiz: 'tech' } })).status, 200);
+    staffRows.get('admin@test.example').active = false;
+    const adminToken = await auth.createSession(await account('second-admin@test.example', 'movie', 'admin'));
+    const last = await call('PATCH', `/staff/${staffRows.get('second-admin@test.example').id}`, { token: tokens.quizmaster, body: { quiz: 'tech' } });
+    assert.equal(last.status, 403);
+    const blocked = await call('PATCH', `/staff/${staffRows.get('both@test.example').id}`, { token: adminToken, body: { active: false } });
+    assert.equal(blocked.status, 200, 'a non-admin account is not held back by the rule');
+    staffRows.get('admin@test.example').active = true;
+    assert.equal(techAdmin.quiz, 'tech');
   });
 });
 

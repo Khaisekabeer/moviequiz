@@ -107,6 +107,7 @@ function createApi(hooks) {
       auth.recordFailure(ipKey, 10, 10 * 60 * 1000);
       return res.status(401).json({ error: 'Wrong username or password' });
     }
+    if (!auth.forThisQuiz(row)) return res.status(403).json({ error: "This account isn't set up for the movie quiz. Ask an admin to add it." });
     auth.clearFailures(ipKey);
     const token = await auth.createSession(row);
     res.json({ token, staff: { id: row.id, username: row.username, displayName: row.display_name, role: row.role } });
@@ -130,7 +131,7 @@ function createApi(hooks) {
     // The same answer whether or not the account exists, so this can't be used to find staff accounts.
     const sent = { success: true, message: 'If that account has an email address, a verification code has been sent. Otherwise ask an administrator.' };
     const staff = await store.findStaffForLogin(emailOrUsername);
-    const targetEmail = staff?.active && staff.username.includes('@') ? staff.username : null;
+    const targetEmail = staff?.active && auth.forThisQuiz(staff) && staff.username.includes('@') ? staff.username : null;
     if (!targetEmail) return res.json(sent);
 
     const otp = String(crypto.randomInt(100000, 1000000));
@@ -170,7 +171,7 @@ function createApi(hooks) {
     };
 
     const staff = await store.findStaffForLogin(emailOrUsername);
-    if (!staff || !staff.active) return invalid();
+    if (!staff || !staff.active || !auth.forThisQuiz(staff)) return invalid();
 
     const record = await store.getSetting(`otp:${staff.id}`);
     if (!record || !record.expiresAt || Date.now() > record.expiresAt) return invalid();
@@ -333,16 +334,19 @@ function createApi(hooks) {
     const username = str(req.body?.username, 64);
     const displayName = str(req.body?.displayName, 60);
     const role = req.body?.role;
+    const quiz = req.body?.quiz ?? 'movie';
     const password = typeof req.body?.password === 'string' ? req.body.password : '';
     check(USERNAME_RE.test(username), 'Username: an email address, or 3-64 letters, numbers, dot, dash or underscore');
     check(displayName, 'Name is required');
     check(ROLES.includes(role), 'Choose a role');
+    check(auth.QUIZZES.includes(quiz), 'Choose a quiz');
     check(password.length >= 8, 'Password must be at least 8 characters');
     check(!(await store.findStaffForLogin(username)), 'That username is taken');
     const staff = await store.createStaff({
       username,
       display_name: displayName,
       role,
+      quiz,
       password_hash: await auth.hashSecret(password),
       created_by: req.session.staff.id,
     });
@@ -366,6 +370,12 @@ function createApi(hooks) {
       fields.role = req.body.role;
       endSessions = true;
     }
+    if (req.body.quiz !== undefined && req.body.quiz !== target.quiz) {
+      check(auth.QUIZZES.includes(req.body.quiz), 'Choose a quiz');
+      check(!isSelf, "You can't change your own quiz");
+      fields.quiz = req.body.quiz;
+      endSessions = true;
+    }
     if (req.body.active !== undefined) {
       check(!isSelf || req.body.active, "You can't deactivate yourself");
       fields.active = !!req.body.active;
@@ -384,7 +394,8 @@ function createApi(hooks) {
       endSessions = !isSelf || endSessions;
     }
     // Never leave the event without an active admin.
-    if (target.role === ADMIN && (fields.active === false || (fields.role && fields.role !== ADMIN))) {
+    if (target.role === ADMIN && auth.forThisQuiz(target)
+      && (fields.active === false || (fields.role && fields.role !== ADMIN) || fields.quiz === 'tech')) {
       check((await store.countActiveAdmins()) > 1, 'There must be at least one active admin');
     }
     check(Object.keys(fields).length, 'Nothing to change');

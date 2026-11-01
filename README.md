@@ -71,7 +71,7 @@ To have the system score these rounds instead, untick *Results kept by hand* and
 
 ## Staff roles
 
-Every staff member has their own login (username or email), created by an admin in **Admin → Staff**.
+Every staff member has their own login (username or email), created by an admin in **Admin → Staff**. Each account also says which quiz it is for: **Movie quiz**, **Tech quiz** or **Both quizzes**. Tech quiz accounts can't sign in here, and an admin can change this at any time.
 
 | Role | Responsibility | Can do |
 |---|---|---|
@@ -124,7 +124,8 @@ Run the files in [`supabase/migrations/`](supabase/migrations/) in order (SQL Ed
 
 - Participants and check-ins are the quiz's own (`movie_registrations`, `movie_checkin_events`, `participants.movie_ticket_id`), so tech tickets can't join and tech records stay as they are.
 - Give this app its own `QUESTION_VAULT_SECRET`. Both apps list every set, but a set only opens under the secret it was created with.
-- Staff accounts are shared, so sign in with the existing logins; `ADMIN_PASSWORD` is not used. `game_server_url` is also shared, so only one quiz can run at a time.
+- Staff accounts are in one shared table, and the **Quiz** field on each says who can sign in here. Accounts from before that field are Tech quiz accounts, except active admins, who are on both. `ADMIN_PASSWORD` is only used if this quiz has no staff at all.
+- `game_server_url` is shared, so only one quiz can run at a time.
 - `SUPABASE_SECRET_KEY` must be the `service_role` or secret key. The `anon` or publishable key can't read or write anything here.
 
 ### 2. Vercel (pages + admin API)

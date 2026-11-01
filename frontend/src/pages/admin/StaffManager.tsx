@@ -2,7 +2,10 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { api, ROLE_LABEL, useStaffSession, type Role } from '../../lib/api';
 import { Panel } from '../../components/ui';
 
-interface StaffRow { id: string; username: string; displayName: string; role: Role; active: boolean; hasPin: boolean }
+type Quiz = 'movie' | 'tech' | 'both';
+const QUIZ_LABEL: Record<Quiz, string> = { movie: 'Movie quiz', tech: 'Tech quiz', both: 'Both quizzes' };
+
+interface StaffRow { id: string; username: string; displayName: string; role: Role; quiz: Quiz; active: boolean; hasPin: boolean }
 
 const ROLE_HELP: Record<Role, string> = {
   admin: 'Management: participants (MakeMyPass CSV), staff accounts, check-in, settings, results. Everything except the question bank.',
@@ -35,6 +38,11 @@ export default function StaffManager() {
     }
   };
 
+  const changeQuiz = (s: StaffRow, quiz: Quiz) => {
+    if (quiz === 'tech' && !confirm(`Move ${s.displayName} to the tech quiz? They will be signed out and can't use this site.`)) return;
+    patch(s, { quiz }, `${s.displayName}: ${QUIZ_LABEL[quiz]}.`);
+  };
+
   const toggleActive = (s: StaffRow) => {
     if (s.active && !confirm(`Deactivate ${s.displayName}? They will be signed out immediately.`)) return;
     patch(s, { active: !s.active });
@@ -49,13 +57,20 @@ export default function StaffManager() {
         {success && <p role="status" style={{ padding: '12px 20px', color: 'var(--good)', fontSize: '0.9rem' }}>{success}</p>}
         <div className="table-wrap">
           <table className="table">
-            <thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Status</th><th /></tr></thead>
+            <thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Quiz</th><th>Status</th><th /></tr></thead>
             <tbody>
               {staff.map(s => (
                 <tr key={s.id} style={{ opacity: s.active ? 1 : 0.5 }}>
                   <td><strong>{s.displayName}</strong>{s.id === me?.staff.id && <span className="dim" style={{ fontSize: '0.8rem' }}> (you)</span>}</td>
                   <td className="mono" style={{ fontSize: '0.82rem' }}>{s.username}</td>
                   <td><span className={`pill${s.role === 'admin' ? ' pill-dark' : ''}`}>{ROLE_LABEL[s.role]}</span></td>
+                  <td>
+                    {s.id === me?.staff.id ? <span className="pill">{QUIZ_LABEL[s.quiz]}</span> : (
+                      <select className="field field-sm" style={{ width: 'auto' }} aria-label={`Quiz for ${s.displayName}`} value={s.quiz} onChange={e => changeQuiz(s, e.target.value as Quiz)}>
+                        {(Object.keys(QUIZ_LABEL) as Quiz[]).map(q => <option key={q} value={q}>{QUIZ_LABEL[q]}</option>)}
+                      </select>
+                    )}
+                  </td>
                   <td>{s.active ? <span className="pill pill-good">Active</span> : <span className="pill pill-bad">Disabled</span>}</td>
                   <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                     <button className="btn btn-ghost btn-sm" onClick={() => setPasswordTarget(s)}>Password</button>{' '}
@@ -198,7 +213,7 @@ function ChangePasswordModal({ target, onClose, onSuccess }: { target: StaffRow;
 }
 
 function CreateStaff({ onCreated }: { onCreated: () => void }) {
-  const empty = { displayName: '', username: '', role: 'volunteer' as Role, password: '' };
+  const empty = { displayName: '', username: '', role: 'volunteer' as Role, quiz: 'movie' as Quiz, password: '' };
   const [form, setForm] = useState(empty);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
@@ -209,7 +224,7 @@ function CreateStaff({ onCreated }: { onCreated: () => void }) {
     setBusy(true);
     setMessage(null);
     try {
-      const body: Record<string, string> = { displayName: form.displayName, username: form.username, role: form.role, password: form.password };
+      const body: Record<string, string> = { displayName: form.displayName, username: form.username, role: form.role, quiz: form.quiz, password: form.password };
       await api('/staff', { method: 'POST', body });
       setMessage({ ok: true, text: `Created ${ROLE_LABEL[form.role].toLowerCase()} "${form.username}". Share the username and password with them privately.` });
       setForm(empty);
@@ -240,6 +255,12 @@ function CreateStaff({ onCreated }: { onCreated: () => void }) {
             <label className="eyebrow" htmlFor="st-role">Role</label>
             <select id="st-role" className="field field-sm" value={form.role} onChange={set('role')}>
               {(Object.keys(ROLE_LABEL) as Role[]).map(r => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
+            </select>
+          </div>
+          <div className="form-row">
+            <label className="eyebrow" htmlFor="st-quiz">Quiz</label>
+            <select id="st-quiz" className="field field-sm" value={form.quiz} onChange={set('quiz')}>
+              {(Object.keys(QUIZ_LABEL) as Quiz[]).map(q => <option key={q} value={q}>{QUIZ_LABEL[q]}</option>)}
             </select>
           </div>
           <div className="form-row">

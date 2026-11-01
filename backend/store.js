@@ -12,7 +12,9 @@ async function run(query, label) {
   return count !== undefined && count !== null ? { data, count } : data;
 }
 
-const STAFF_COLUMNS = 'id, username, display_name, role, active, created_at, pin_hash';
+const STAFF_COLUMNS = 'id, username, display_name, role, quiz, active, created_at, pin_hash';
+// Staff who can sign in to this quiz (see auth.forThisQuiz).
+const OUR_STAFF = ['movie', 'both'];
 
 function toStaff(row) {
   return row && {
@@ -20,6 +22,7 @@ function toStaff(row) {
     username: row.username,
     displayName: row.display_name,
     role: row.role,
+    quiz: row.quiz,
     active: row.active,
     createdAt: row.created_at,
     hasPin: !!row.pin_hash,
@@ -39,7 +42,7 @@ function normalizeTicketId(raw) {
 
 // ─── Staff ────────────────────────────────────────────────────────────────────
 async function countStaff() {
-  const { count } = await run(supabase.from('staff').select('id', { count: 'exact', head: true }), 'Counting staff');
+  const { count } = await run(supabase.from('staff').select('id', { count: 'exact', head: true }).in('quiz', OUR_STAFF), 'Counting staff');
   return count;
 }
 
@@ -63,7 +66,7 @@ async function listStaff() {
 
 async function countActiveAdmins() {
   const { count } = await run(
-    supabase.from('staff').select('id', { count: 'exact', head: true }).eq('role', 'admin').eq('active', true),
+    supabase.from('staff').select('id', { count: 'exact', head: true }).eq('role', 'admin').eq('active', true).in('quiz', OUR_STAFF),
     'Counting admins',
   );
   return count;
@@ -87,7 +90,7 @@ function insertSession(row) {
 async function getSessionWithStaff(tokenHash) {
   const rows = await run(
     supabase.from('staff_sessions')
-      .select('token_hash, expires_at, vault_until, vault_dek, vault_bank, staff:staff_id (id, username, display_name, role, active)')
+      .select('token_hash, expires_at, vault_until, vault_dek, vault_bank, staff:staff_id (id, username, display_name, role, quiz, active)')
       .eq('token_hash', tokenHash)
       .limit(1),
     'Loading session',

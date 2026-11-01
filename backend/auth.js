@@ -48,6 +48,10 @@ function toSessionStaff(s) {
   return { id: s.id, username: s.username, displayName: s.display_name, role: s.role };
 }
 
+// Staff and sessions are shared with the tech quiz; each account says which quiz it is for.
+const QUIZZES = ['movie', 'tech', 'both'];
+const forThisQuiz = staff => staff.quiz !== 'tech';
+
 // Short-lived cache: with several serverless instances, a lock / deactivation made on one
 // instance reaches the others within this window.
 const CACHE_TTL_MS = 30 * 1000;
@@ -71,7 +75,7 @@ async function getSession(token) {
     return null;
   }
   const row = await store.getSessionWithStaff(tokenHash);
-  if (!row || !row.staff?.active) {
+  if (!row || !row.staff?.active || !forThisQuiz(row.staff)) {
     cache.delete(tokenHash);
     return null;
   }
@@ -181,6 +185,7 @@ async function ensureBootstrapAdmin() {
     username: 'admin',
     display_name: 'Admin',
     role: 'admin',
+    quiz: 'movie',
     password_hash: await hashSecret(password),
   });
   console.warn(generated
@@ -189,6 +194,8 @@ async function ensureBootstrapAdmin() {
 }
 
 module.exports = {
+  QUIZZES,
+  forThisQuiz,
   VAULT_TTL_MS,
   hashSecret,
   verifySecret,
