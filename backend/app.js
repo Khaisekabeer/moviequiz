@@ -1,6 +1,6 @@
 // The admin/staff HTTP app (no live game). Runs:
 //   - inside server.js, next to the game in one process (development / laptop-only fallback)
-//   - on Vercel as a serverless function (api/index.js), talking to the laptop's game server
+//   - on Vercel as the "backend" service (vercel-entry.js), talking to the laptop's game server
 const express = require('express');
 const cors = require('cors');
 const createApi = require('./api');

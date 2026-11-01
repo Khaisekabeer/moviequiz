@@ -128,7 +128,7 @@ Run the files in [`supabase/migrations/`](supabase/migrations/) in order (SQL Ed
 - `SUPABASE_SECRET_KEY` must be the `service_role` or secret key. The `anon` or publishable key can't read or write anything here.
 
 ### 2. Vercel (pages + admin API)
-1. Import the GitHub repo into Vercel. Keep the **root directory** as the repo root — [`vercel.json`](vercel.json) builds `frontend/`, installs `backend/` for the API function and routes `/api/*` to [`api/index.js`](api/index.js).
+1. Import the GitHub repo into Vercel. Keep the **root directory** as the repo root — [`vercel.json`](vercel.json) deploys `frontend/` and `backend/` as two services of one project and routes `/api/*` to [`backend/vercel-entry.js`](backend/vercel-entry.js).
 2. Add the environment variables above (Production).
 3. Deploy. Staff sign in at `https://<your-app>.vercel.app/admin`.
 

@@ -1,6 +1,6 @@
 // All-in-one server: admin API + live game + built frontend in one process.
 // Used for development and as a laptop-only fallback. For the split deployment (UI + API on
-// Vercel, game on a laptop behind Cloudflare Tunnel) see api/index.js and game-server.js.
+// Vercel, game on a laptop behind Cloudflare Tunnel) see vercel-entry.js and game-server.js.
 require('dotenv').config({ quiet: true });
 const express = require('express');
 const fs = require('fs');
