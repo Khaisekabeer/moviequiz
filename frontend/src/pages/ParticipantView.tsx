@@ -465,7 +465,7 @@ export default function ParticipantView() {
     const ranked = byCumulative(board.filter(p => p.status !== 'disqualified'));
     const rank = disqualified ? 0 : ranked.findIndex(p => p.id === playerInfo.id) + 1;
     const me = ranked[rank - 1];
-    const medal = disqualified ? 'Disqualified' : rank === 1 ? 'Champion!' : rank === 2 ? 'Runner-up!' : rank === 3 ? 'Third place!' : 'Final standing';
+    const medal = disqualified ? 'Disqualified' : playerInfo.status === 'active' ? 'Selected!' : 'Final standing';
     return (
       <Screen theme="marquee">
         <main style={center}>

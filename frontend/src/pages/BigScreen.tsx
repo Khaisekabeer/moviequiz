@@ -137,7 +137,7 @@ export default function BigScreen() {
         {shown === 'leaderboard' && <Reveal result={questionResult} players={active} hideStandings={!!gameState.standingsHidden} round={gameState.currentLevel} startedAt={gameState.questionStartTime} />}
         {shown === 'scoreboard' && <Scoreboard players={(gameState.finalLeaderboard || players).filter((p: any) => p.status === 'active')} columns={gameState.scoreColumns} />}
         {shown === 'podium' && gameState.manualFinish && <ManualFinish finalists={active} />}
-        {shown === 'podium' && !gameState.manualFinish && <Podium board={byCumulative((gameState.finalLeaderboard || players).filter((p: any) => p.status !== 'disqualified'))} />}
+        {shown === 'podium' && !gameState.manualFinish && <Selected board={byCumulative((gameState.finalLeaderboard || players).filter((p: any) => p.status !== 'disqualified'))} />}
       </div>
     </div>
   );
@@ -537,17 +537,12 @@ function Scoreboard({ players, columns }: { players: any[]; columns: string[] })
   );
 }
 
-// ─── Podium ───────────────────────────────────────────────────────────────────
-function Podium({ board }: { board: any[] }) {
-  // Classic podium order: 2nd, 1st, 3rd
-  const slots = [
-    { p: board[1], place: 2, height: '22vh', delay: 500, color: '#e5e7eb' },
-    { p: board[0], place: 1, height: '32vh', delay: 900, color: 'var(--t-title)' },
-    { p: board[2], place: 3, height: '15vh', delay: 200, color: '#fdba74' },
-  ];
-  const rest = board.slice(3, 10);
+// ─── Selected: the players going through to the next game ─────────────────────
+function Selected({ board }: { board: any[] }) {
+  // After the final cut, the players still in are the ones going through.
+  const finalists = board.filter(p => p.status === 'active').slice(0, 5);
 
-  // Confetti from both sides, starting as the champion appears on the podium.
+  // Confetti from both sides, starting as the selected players appear.
   useEffect(() => {
     const colors = ['#3da9fc', '#ff5c8a', '#ffc531', '#3ddc97'];
     const burst = () => {
@@ -559,44 +554,21 @@ function Podium({ board }: { board: any[] }) {
   }, []);
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', padding: '0 4vw' }}>
-      <Burst style={{ padding: '2.6vh 5vw 3.4vh', marginBottom: '3vh' }}>
-        <h1 className="comic-title slam" style={{ fontSize: 'clamp(3rem, 6vw, 7rem)' }}>Champions!</h1>
+    <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 4vw 3vh' }}>
+      <Burst style={{ padding: '2.6vh 5vw 3.4vh', marginBottom: '1.5vh' }}>
+        <h1 className="comic-title slam" style={{ fontSize: 'clamp(3rem, 6vw, 7rem)' }}>Selected!</h1>
       </Burst>
+      <Rise d={400} as="p" className="comic-text" style={{ margin: '0 0 1.5vh', fontSize: 'clamp(1.3rem, 2.2vw, 2.6rem)' }}>These {finalists.length} move on to the next game</Rise>
 
-      <div style={{ flex: 1, width: '100%', maxWidth: 1300, display: 'grid', gridTemplateColumns: '1fr 1.15fr 1fr', gap: '2vw', alignItems: 'end' }}>
-        {slots.map(({ p, place, height, delay, color }) => (
-          <div key={place} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 0 }}>
-            {p && (
-              <div className="pop" style={{ ['--d' as string]: `${delay + 500}ms`, display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '1.6vh', maxWidth: '100%' }}>
-                <Avatar id={p.avatar} size={place === 1 ? '15vh' : '12vh'} style={{ border: '4px solid var(--t-ink)', boxShadow: '5px 5px 0 var(--t-ink)' }} />
-                <div className="comic-text" style={{ marginTop: '1.2vh', fontSize: place === 1 ? 'clamp(2rem, 3.2vw, 3.6rem)' : 'clamp(1.4rem, 2.2vw, 2.6rem)', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {p.name}
-                </div>
-                <span className="comic-badge light" style={{ fontSize: '1.1rem', marginTop: 6 }}>{cumulative(p)} pts</span>
-              </div>
-            )}
-            <div className="comic-panel" style={{
-              width: '100%', height, background: color, borderRadius: '16px 16px 0 0', borderBottom: 0,
-              display: 'flex', justifyContent: 'center', paddingTop: '1.6vh',
-              transformOrigin: 'bottom', animation: `grow-y 0.9s var(--ease-out) ${delay}ms backwards`,
-            }}>
-              <span className="comic-title" style={{ fontSize: place === 1 ? '10vh' : '7vh' }}>{place}</span>
-            </div>
+      <div style={{ flex: 1, minHeight: 0, width: '100%', maxWidth: 1500, display: 'grid', gridTemplateColumns: `repeat(${Math.max(finalists.length, 1)}, minmax(0, 1fr))`, gap: '1.6vw', alignItems: 'center' }}>
+        {finalists.map((p, i) => (
+          <div key={p.id} className="comic-panel pop" style={{ ['--d' as string]: `${500 + i * 250}ms`, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.4vh', padding: '2.6vh 1vw', textAlign: 'center', minWidth: 0 }}>
+            <Avatar id={p.avatar} size="15vh" style={{ border: '4px solid var(--t-ink)', boxShadow: '4px 4px 0 var(--t-ink)' }} />
+            <div className="comic-text" style={{ fontSize: 'clamp(1.2rem, 2vw, 2.4rem)', lineHeight: 1.1, maxWidth: '100%', overflowWrap: 'anywhere' }}>{p.name}</div>
+            <span className="comic-badge light" style={{ fontSize: 'clamp(1rem, 1.5vw, 1.6rem)' }}>{cumulative(p)} pts</span>
           </div>
         ))}
       </div>
-
-      {rest.length > 0 && (
-        <Rise d={1600} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', padding: '2vh 0' }}>
-          {rest.map((p: any, i: number) => (
-            <span key={p.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '4px 14px 4px 4px', background: '#fff', color: '#111', border: '2px solid var(--t-ink)', borderRadius: 999, boxShadow: '2px 2px 0 var(--t-ink)', fontWeight: 700 }}>
-              <Avatar id={p.avatar} size={30} /> {i + 4}. {p.name} · {cumulative(p)}
-            </span>
-          ))}
-        </Rise>
-      )}
-      <div style={{ position: 'absolute', right: '2vw', bottom: '2vh' }}><VyuhamLogo height="10vh" /></div>
     </div>
   );
 }
