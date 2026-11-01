@@ -244,7 +244,7 @@ function createApi(hooks) {
   }));
 
   // New set: the quiz master names it and chooses its PIN. The recovery code is shown once.
-  api.post('/banks', small, requireStaff(QM), route(async (req, res) => {
+  api.post('/banks', small, requireStaff(QM, COORD), route(async (req, res) => {
     const name = bankName(req.body?.name);
     check(name, 'Give the set a name, e.g. "Main set"');
     check((await store.listBanks()).length < 20, 'At most 20 question sets');
@@ -258,7 +258,7 @@ function createApi(hooks) {
     }
   }));
 
-  api.post('/banks/:id/open', small, requireStaff(QM), route(async (req, res) => {
+  api.post('/banks/:id/open', small, requireStaff(QM, COORD), route(async (req, res) => {
     check(isUuid(req.params.id), 'Invalid set');
     const limiter = pinLimited(req, res, req.params.id);
     if (!limiter) return;
@@ -274,7 +274,7 @@ function createApi(hooks) {
   // First PIN for a set that has none (the old single bank, moved into a set). Its questions are
   // already encrypted, so the old quiz master PIN of this account (or the old recovery code) is
   // needed once to carry the key over.
-  api.post('/banks/:id/setup', small, requireStaff(QM), route(async (req, res) => {
+  api.post('/banks/:id/setup', small, requireStaff(QM, COORD), route(async (req, res) => {
     check(isUuid(req.params.id), 'Invalid set');
     const limiter = pinLimited(req, res, req.params.id);
     if (!limiter) return;
@@ -293,7 +293,7 @@ function createApi(hooks) {
   }));
 
   // Forgotten PIN: the set's recovery code sets a new PIN and opens the set.
-  api.post('/banks/:id/recover', small, requireStaff(QM), route(async (req, res) => {
+  api.post('/banks/:id/recover', small, requireStaff(QM, COORD), route(async (req, res) => {
     check(isUuid(req.params.id), 'Invalid set');
     const limiter = pinLimited(req, res, req.params.id);
     if (!limiter) return;
@@ -307,7 +307,7 @@ function createApi(hooks) {
   }));
 
   // Change a set's PIN (needs the current one). Tell the coordinator the new PIN.
-  api.post('/banks/:id/pin', small, requireStaff(QM), route(async (req, res) => {
+  api.post('/banks/:id/pin', small, requireStaff(QM, COORD), route(async (req, res) => {
     check(isUuid(req.params.id), 'Invalid set');
     const limiter = pinLimited(req, res, req.params.id);
     if (!limiter) return;
@@ -320,17 +320,21 @@ function createApi(hooks) {
     }
   }));
 
-  api.post('/auth/vault/lock', requireStaff(QM), route(async (req, res) => {
+  api.post('/auth/vault/lock', requireStaff(QM, COORD), route(async (req, res) => {
     await auth.lockVault(req.session.tokenHash);
     res.json({ success: true });
   }));
 
   // ─── Staff management (admin) ──────────────────────────────────────────────
-  api.get('/staff', requireStaff(ADMIN), route(async (req, res) => {
-    res.json(await store.listStaff());
+  // A coordinator manages the volunteers, and no other accounts.
+  const onlyVolunteers = req => req.session.staff.role === COORD;
+
+  api.get('/staff', requireStaff(ADMIN, COORD), route(async (req, res) => {
+    const staff = await store.listStaff();
+    res.json(onlyVolunteers(req) ? staff.filter(s => s.role === VOL) : staff);
   }));
 
-  api.post('/staff', small, requireStaff(ADMIN), route(async (req, res) => {
+  api.post('/staff', small, requireStaff(ADMIN, COORD), route(async (req, res) => {
     const username = str(req.body?.username, 64);
     const displayName = str(req.body?.displayName, 60);
     const role = req.body?.role;
@@ -338,6 +342,7 @@ function createApi(hooks) {
     check(USERNAME_RE.test(username), 'Username: an email address, or 3-64 letters, numbers, dot, dash or underscore');
     check(displayName, 'Name is required');
     check(ROLES.includes(role), 'Choose a role');
+    check(!onlyVolunteers(req) || role === VOL, 'A coordinator can only add volunteers');
     check(password.length >= 8, 'Password must be at least 8 characters');
     const existing = await store.findStaffForLogin(username);
     check(!existing || auth.forThisQuiz(existing), 'That username is on the tech quiz. Use a different one.');
@@ -353,9 +358,10 @@ function createApi(hooks) {
     res.status(201).json(staff);
   }));
 
-  api.patch('/staff/:id', small, requireStaff(ADMIN), route(async (req, res) => {
+  api.patch('/staff/:id', small, requireStaff(ADMIN, COORD), route(async (req, res) => {
     const target = await store.getStaffRow(req.params.id);
-    if (!target || !auth.forThisQuiz(target)) return res.status(404).json({ error: 'Staff member not found' });
+    const outOfReach = !target || !auth.forThisQuiz(target) || (onlyVolunteers(req) && target.role !== VOL);
+    if (outOfReach) return res.status(404).json({ error: 'Staff member not found' });
     const isSelf = target.id === req.session.staff.id;
     const fields = {};
     let endSessions = false;
@@ -366,6 +372,7 @@ function createApi(hooks) {
     }
     if (req.body.role !== undefined && req.body.role !== target.role) {
       check(ROLES.includes(req.body.role), 'Choose a role');
+      check(!onlyVolunteers(req), "A coordinator can't change roles");
       check(!isSelf, "You can't change your own role");
       fields.role = req.body.role;
       endSessions = true;
@@ -378,7 +385,7 @@ function createApi(hooks) {
     if (req.body.password !== undefined) {
       check(typeof req.body.password === 'string' && req.body.password.length >= 8, 'Password must be at least 8 characters');
       const currentPassword = typeof req.body.currentPassword === 'string' ? req.body.currentPassword : '';
-      check(currentPassword.length > 0, 'Your current admin password is required to change a password');
+      check(currentPassword.length > 0, 'Your current password is required to change a password');
       const currentAdmin = await store.getStaffRow(req.session.staff.id);
       const isCurrentPasswordValid = currentAdmin && await auth.verifySecret(currentPassword, currentAdmin.password_hash);
       if (!isCurrentPasswordValid) {
@@ -398,7 +405,7 @@ function createApi(hooks) {
   }));
 
   // ─── Participants (admin) ──────────────────────────────────────────────────
-  api.post('/registrations/import', big, requireStaff(ADMIN), route(async (req, res) => {
+  api.post('/registrations/import', big, requireStaff(ADMIN, COORD), route(async (req, res) => {
     const input = Array.isArray(req.body?.rows) ? req.body.rows : [];
     check(input.length > 0, 'No rows to import');
     check(input.length <= 20000, 'Import at most 20,000 rows at a time');
@@ -417,14 +424,14 @@ function createApi(hooks) {
     res.json({ imported, skipped, duplicates: input.length - skipped - seen.size });
   }));
 
-  api.get('/registrations', requireStaff(ADMIN), route(async (req, res) => {
+  api.get('/registrations', requireStaff(ADMIN, COORD), route(async (req, res) => {
     const limit = Math.min(200, Math.max(1, Number(req.query.limit) || 50));
     const offset = Math.max(0, Number(req.query.offset) || 0);
     const status = ['in', 'out'].includes(req.query.status) ? req.query.status : 'all';
     res.json(await store.searchRegistrations({ q: str(req.query.q, 80), status, limit, offset }));
   }));
 
-  api.post('/registrations/:ticketId/undo', requireStaff(ADMIN), route(async (req, res) => {
+  api.post('/registrations/:ticketId/undo', requireStaff(ADMIN, COORD), route(async (req, res) => {
     const reg = await store.undoCheckin(store.normalizeTicketId(req.params.ticketId), req.session.staff.id);
     if (!reg) return res.status(404).json({ error: 'Ticket not found' });
     res.json(reg);
@@ -556,7 +563,7 @@ function createApi(hooks) {
 
   // ─── The open question set (quiz master; contents encrypted at rest) ────────
   // Everything below works on the set this session opened with its PIN.
-  const qm = [requireStaff(QM), requireVault];
+  const qm = [requireStaff(QM, COORD), requireVault];
   const dekOf = req => req.session.dek;
   const bankOf = req => req.session.bankId;
   const sealContent = (req, q) => vault.encryptQuestion(dekOf(req), { text: q.text, options: q.options, correctAnswer: q.correctAnswer, imageId: q.imageId, videoId: q.videoId, note: q.note, backup: q.backup, accepted: q.accepted });

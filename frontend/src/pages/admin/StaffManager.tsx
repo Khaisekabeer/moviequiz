@@ -7,12 +7,13 @@ interface StaffRow { id: string; username: string; displayName: string; role: Ro
 const ROLE_HELP: Record<Role, string> = {
   admin: 'Management: participants (MakeMyPass CSV), staff accounts, check-in, settings, results. Everything except the question bank.',
   quizmaster: 'Builds the question sets (e.g. Main set, Trial set). Each set is encrypted and has its own PIN, chosen by the quiz master.',
-  coordinator: 'Conducts the live event from the host console: loads a question set with its PIN, then start, next question, reveal, disqualify, reset.',
+  coordinator: 'Conducts the live event from the host console. Also manages participants and volunteers, and can open a question set with its PIN.',
   volunteer: 'Checks in passes at the entry and monitors the live event (who is online, answers in).',
 };
 
 export default function StaffManager() {
   const me = useStaffSession();
+  const volunteersOnly = me?.staff.role === 'coordinator';
   const [staff, setStaff] = useState<StaffRow[]>([]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -42,9 +43,9 @@ export default function StaffManager() {
 
   return (
     <>
-      <CreateStaff onCreated={load} />
+      <CreateStaff onCreated={load} volunteersOnly={volunteersOnly} />
       <Panel style={{ padding: 0 }}>
-        <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--line)' }} className="eyebrow">Staff accounts · {staff.length}</div>
+        <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--line)' }} className="eyebrow">{volunteersOnly ? 'Volunteers' : 'Staff accounts'} · {staff.length}</div>
         {error && <p role="alert" className="error-text" style={{ padding: '12px 20px' }}>{error}</p>}
         {success && <p role="status" style={{ padding: '12px 20px', color: 'var(--good)', fontSize: '0.9rem' }}>{success}</p>}
         <div className="table-wrap">
@@ -132,7 +133,7 @@ function ChangePasswordModal({ target, onClose, onSuccess }: { target: StaffRow;
       padding: 20,
     }}>
       <Panel style={{ width: '100%', maxWidth: 420, padding: 28, position: 'relative' }}>
-        <div className="eyebrow" style={{ color: 'var(--heat)' }}>Admin Verification Required</div>
+        <div className="eyebrow" style={{ color: 'var(--heat)' }}>Verification Required</div>
         <h2 style={{ margin: '8px 0 16px', fontSize: '1.25rem' }}>Change Password</h2>
         <p className="dim" style={{ fontSize: '0.9rem', marginBottom: 20 }}>
           Changing password for <strong>{target.displayName}</strong> (<span className="mono">{target.username}</span>).
@@ -140,7 +141,7 @@ function ChangePasswordModal({ target, onClose, onSuccess }: { target: StaffRow;
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div>
-            <label className="eyebrow" htmlFor="current-pw">Your Current Admin Password</label>
+            <label className="eyebrow" htmlFor="current-pw">Your Current Password</label>
             <input
               id="current-pw"
               className="field field-sm"
@@ -197,7 +198,7 @@ function ChangePasswordModal({ target, onClose, onSuccess }: { target: StaffRow;
   );
 }
 
-function CreateStaff({ onCreated }: { onCreated: () => void }) {
+function CreateStaff({ onCreated, volunteersOnly }: { onCreated: () => void; volunteersOnly: boolean }) {
   const empty = { displayName: '', username: '', role: 'volunteer' as Role, password: '' };
   const [form, setForm] = useState(empty);
   const [busy, setBusy] = useState(false);
@@ -223,7 +224,7 @@ function CreateStaff({ onCreated }: { onCreated: () => void }) {
 
   return (
     <Panel>
-      <div className="eyebrow">Add staff</div>
+      <div className="eyebrow">{volunteersOnly ? 'Add volunteer' : 'Add staff'}</div>
       <h2 style={{ margin: '8px 0 16px', fontSize: '1.2rem' }}>Create an account</h2>
       <form onSubmit={submit}>
         <div className="form-grid">
@@ -236,12 +237,14 @@ function CreateStaff({ onCreated }: { onCreated: () => void }) {
             <input id="st-user" className="field field-sm" value={form.username} onChange={set('username')} required
               pattern="[a-zA-Z0-9._@+\-]{3,64}" title="An email address, or 3-64 letters, numbers, dot, dash or underscore" autoCapitalize="none" spellCheck={false} />
           </div>
-          <div className="form-row">
-            <label className="eyebrow" htmlFor="st-role">Role</label>
-            <select id="st-role" className="field field-sm" value={form.role} onChange={set('role')}>
-              {(Object.keys(ROLE_LABEL) as Role[]).map(r => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
-            </select>
-          </div>
+          {!volunteersOnly && (
+            <div className="form-row">
+              <label className="eyebrow" htmlFor="st-role">Role</label>
+              <select id="st-role" className="field field-sm" value={form.role} onChange={set('role')}>
+                {(Object.keys(ROLE_LABEL) as Role[]).map(r => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
+              </select>
+            </div>
+          )}
           <div className="form-row">
             <label className="eyebrow" htmlFor="st-pass">Password</label>
             <input id="st-pass" className="field field-sm" type="password" value={form.password} onChange={set('password')} required minLength={8} autoComplete="new-password" />

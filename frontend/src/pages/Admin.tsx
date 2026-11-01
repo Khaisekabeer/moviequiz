@@ -22,7 +22,12 @@ const TABS: Record<Role, { id: TabId; label: string }[]> = {
     { id: 'live', label: 'Live event' },
   ],
   quizmaster: [{ id: 'questions', label: 'Questions' }],
-  coordinator: [{ id: 'live', label: 'Live event' }],
+  coordinator: [
+    { id: 'live', label: 'Live event' },
+    { id: 'participants', label: 'Participants' },
+    { id: 'staff', label: 'Volunteers' },
+    { id: 'questions', label: 'Questions' },
+  ],
   volunteer: [
     { id: 'scan', label: 'Check-in' },
     { id: 'live', label: 'Live monitor' },

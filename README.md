@@ -79,18 +79,18 @@ Every staff member has their own login (username or email), created by an admin 
 |---|---|---|
 | **Admin** | Management | Import participants (MakeMyPass CSV), check-in dashboard, scan passes, manage staff, settings (game server address, *require check-in*), results CSV, host console. Can't read question sets (only load one with its PIN) |
 | **Quiz master** | Questions & answers | **Question sets** (e.g. Main set, Trial set), each encrypted with its own PIN chosen by the quiz master: levels, questions, pictures, timers, points, themes; gives the coordinator the PIN of the set to play |
-| **Coordinator** | Conducts the live event | Host console: **loads a question set with its PIN**, then start, next question, reveal, disqualify, reset; live monitor |
+| **Coordinator** | Conducts the live event | Host console: **loads a question set with its PIN**, then start, next question, reveal, disqualify, reset; live monitor. Also the participant list and import, volunteer accounts (no other staff), and the Questions tab for any set they have the PIN of |
 | **Volunteer** | Monitors the live event | Pass check-in scanner and the read-only live monitor (who is online/disconnected, answers in) |
 
 - **First sign-in:** on first start the server creates an admin `admin` whose password is `ADMIN_PASSWORD` from `backend/.env`. If that is not set, a random password is printed once in the server log. Sign in, create real accounts, then change or disable `admin`.
 
 ## Question sets & PINs
 
-Questions are only ever visible to quiz masters until they appear live on the projector.
+Questions are only ever visible to quiz masters, and to coordinators who have a set's PIN, until they appear live on the projector.
 
 - **Sets:** questions live in **question sets** — e.g. *Main set* (the real event) and *Trial set* (a practice round). Each set has its own levels, questions, **PIN** and **recovery code**. The PIN belongs to the set, not to an account.
 - **Quiz master:** creates a set (Admin → Questions → *+ New question set*), names it and chooses its PIN (4–12 digits). Opening a set with its PIN unlocks it for editing for 30 minutes (*Lock · switch set* ends it early). From the open set they can rename it, **change the PIN**, make a **new recovery code**, or delete it.
-- **Coordinator:** loads the set to play from the **host console** (lobby → *Question set*): pick the set, enter the PIN the quiz master gave them, *Load set*. They never see the questions — they go straight to the game server's memory and reach phones/projector one at a time (answers only at the reveal). After a game-server restart, load the set again. A quiz master can also load the set they have open, to test it.
+- **Coordinator:** loads the set to play from the **host console** (lobby → *Question set*): pick the set, enter the PIN the quiz master gave them, *Load set*. With the PIN they can also open the set in the Questions tab. After a game-server restart, load the set again. A quiz master can also load the set they have open, to test it.
 - **Encryption:** each question's text, options, answer and picture is encrypted (AES-256-GCM) with the set's key. The key is stored only sealed with a key derived from the **set PIN plus the server secret** `QUESTION_VAULT_SECRET`, so a copy of the database can't be brute-forced, and admins can't read questions. Wrong PINs are limited (5 per person per 5 minutes, 30 per set per 15 minutes).
 - **Forgot a set's PIN:** *Forgot PIN* on the set → enter that set's recovery code → choose a new PIN. Without the PIN or the recovery code, the set can't be opened by anyone.
 - **Moving the old question bank:** questions written before sets existed are in *Trial set*, which needs a PIN once: a quiz master clicks *Set up*, enters their **old quiz master PIN** (or the old recovery code) and chooses the new set PIN.

@@ -160,7 +160,6 @@ describe('API access control', () => {
   const PUBLIC = ['POST /auth/login', 'POST /auth/forgot-password', 'POST /auth/reset-password', 'GET /config'];
   const ALLOWED = {
     volunteer: ['POST /auth/logout', 'GET /auth/me', 'GET /checkin/recent', 'GET /checkin/:ticketId', 'POST /checkin/:ticketId', 'GET /game/status'],
-    coordinator: ['POST /auth/logout', 'GET /auth/me', 'GET /banks', 'GET /game/status', 'GET /game/questions-status', 'POST /game/load-questions'],
   };
   const routes = () => createApi({}).stack.filter(l => l.route).flatMap(l => Object.keys(l.route.methods)
     .map(m => ({ key: `${m.toUpperCase()} ${l.route.path}`, method: m.toUpperCase(), path: l.route.path })));
@@ -185,6 +184,13 @@ describe('API access control', () => {
       }
     });
   }
+
+  test('a coordinator is refused settings, results and the entry desk', async () => {
+    const job = /^\/(auth|banks|questions|levels|registrations|staff|game)/;
+    const outside = routes().filter(r => !job.test(r.path) && !PUBLIC.includes(r.key));
+    assert.ok(outside.length >= 8);
+    for (const r of outside) assert.equal((await send(r, tokens.coordinator)).status, 403, r.key);
+  });
 
   test('an admin cannot read or change questions', async () => {
     for (const r of routes().filter(x => /^\/(questions|levels)/.test(x.path) || x.path.startsWith('/banks/'))) {
@@ -283,6 +289,60 @@ describe('staff of each quiz', () => {
     staffRows.get('admin@test.example').active = true;
     assert.match((await last.json()).error, /at least one active admin/);
     assert.equal((await call('PATCH', `/staff/${other.id}`, { token: tokens.admin, body: { active: false } })).status, 200);
+  });
+});
+
+describe('a coordinator beyond the live event', () => {
+  const add = (role, name) => {
+    const row = { id: uuid(), username: `${name}@test.example`, display_name: name, role, quiz: 'movie', active: true, password_hash: 'x' };
+    staffRows.set(row.username, row);
+    return row;
+  };
+  const patch = (row, body) => call('PATCH', `/staff/${row.id}`, { token: tokens.coordinator, body });
+
+  test('sees the volunteers and nobody else', async () => {
+    add('volunteer', 'desk-one');
+    const list = await (await call('GET', '/staff', { token: tokens.coordinator })).json();
+    assert.ok(list.length > 0);
+    assert.ok(list.every(s => s.role === 'volunteer'));
+    assert.ok((await (await call('GET', '/staff', { token: tokens.admin })).json()).some(s => s.role === 'admin'));
+  });
+
+  test('adds volunteers, and only volunteers', async () => {
+    const create = (username, role) => call('POST', '/staff', { token: tokens.coordinator, body: { username, displayName: 'New', role, password: 'long-enough-1' } });
+    assert.equal((await create('new-volunteer@test.example', 'volunteer')).status, 201);
+    for (const role of ['admin', 'quizmaster', 'coordinator']) {
+      const res = await create(`new-${role}@test.example`, role);
+      assert.equal(res.status, 400, role);
+      assert.equal(staffRows.get(`new-${role}@test.example`), undefined);
+    }
+  });
+
+  test('can disable a volunteer, but not promote one', async () => {
+    const row = add('volunteer', 'desk-two');
+    assert.equal((await patch(row, { active: false })).status, 200);
+    assert.equal(row.active, false);
+    assert.equal((await patch(row, { role: 'admin' })).status, 400);
+    assert.equal(row.role, 'volunteer');
+  });
+
+  test('cannot touch an admin, a quiz master or another coordinator', async () => {
+    for (const role of ['admin', 'quizmaster', 'coordinator']) {
+      const row = add(role, `other-${role}`);
+      assert.equal((await patch(row, { active: false })).status, 404, role);
+      assert.equal(row.active, true, role);
+    }
+  });
+
+  test('has the participant list and import', async () => {
+    assert.equal((await call('GET', '/registrations', { token: tokens.coordinator })).status, 200);
+    const rows = [{ ticketId: 'CO1', name: 'Asha' }];
+    assert.equal((await call('POST', '/registrations/import', { token: tokens.coordinator, body: { rows } })).status, 200);
+  });
+
+  test('still needs the PIN of a set before reading any question', async () => {
+    assert.equal((await call('GET', '/questions', { token: tokens.coordinator })).status, 423);
+    assert.equal((await call('GET', '/levels', { token: tokens.coordinator })).status, 423);
   });
 });
 
