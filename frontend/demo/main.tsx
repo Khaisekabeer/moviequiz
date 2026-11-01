@@ -1,0 +1,18 @@
+import './boot'
+import { createRoot } from 'react-dom/client'
+import '@fontsource/big-shoulders-display/latin-700'
+import '@fontsource/big-shoulders-display/latin-900'
+import '@fontsource/martian-mono/latin-400'
+import '@fontsource/martian-mono/latin-600'
+import '@fontsource/instrument-sans/latin-400'
+import '@fontsource/instrument-sans/latin-500'
+import '@fontsource/instrument-sans/latin-600'
+import '@fontsource/instrument-sans/latin-700'
+import '@fontsource/luckiest-guy/latin-400'
+import '../src/index.css'
+import '../src/comic.css'
+import '../src/staff.css'
+import './demo.css'
+import Shell from './Shell'
+
+createRoot(document.getElementById('root') as HTMLElement).render(<Shell />)
