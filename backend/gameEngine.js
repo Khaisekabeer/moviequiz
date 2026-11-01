@@ -35,6 +35,10 @@ const MIN_TURN_SECONDS = 5;
 
 // A spoken question has no options: the player says the answer and the coordinator marks it.
 const isSpoken = q => q?.type === 'short';
+// Buzzer and passing rounds have no options. A question written with options, in a set saved before
+// this rule or a spare swapped in, is played spoken: the coordinator marks it against its answer.
+const SPOKEN_ROUNDS = ['buzzer', 'passing'];
+const forRound = q => (SPOKEN_ROUNDS.includes(q.mode) ? { ...q, type: 'short', options: [] } : q);
 
 // What other clients may see about a player (never the rejoin token or ticket).
 function publicPlayer(p) {
@@ -111,7 +115,7 @@ class GameEngine {
     if (!backup) return { error: 'That backup is not available' };
     const index = this.currentQuestionIndex - 1;
     const { level, levelName, multiplier, cut, theme, mode, afterMiss, scoring, untimed, answerSeconds, resetScores, manualResults } = this.questions[index];
-    this.questions[index] = { ...backup, level, levelName, multiplier, cut, theme, mode, afterMiss, scoring, untimed, answerSeconds, resetScores, manualResults };
+    this.questions[index] = { ...forRound({ ...backup, mode }), level, levelName, multiplier, cut, theme, mode, afterMiss, scoring, untimed, answerSeconds, resetScores, manualResults };
     this.backupsUsed.add(id);
     this.currentQuestionIndex = index;
     this.pendingCut = null; // proposed again when this round really ends
@@ -539,8 +543,8 @@ class GameEngine {
   }
 
   // ─── Buzzer and passing rounds ──────────────────────────────────────────────
-  // One player at a time holds the question and answers on their phone. Any step that ends a
-  // turn returns { finished }: true when the question is over, otherwise the next turn is running
+  // One player at a time holds the question and says the answer, and the coordinator marks it. Any
+  // step that ends a turn returns { finished }: true when the question is over, otherwise the next turn is running
   // and questionEndsAt is its deadline. Scores still change only at the reveal (endQuestion).
   beginTurns(mode, q) {
     const untimed = mode === 'buzzer' && this.levelInfo(this.currentLevel).untimed;
@@ -1133,3 +1137,4 @@ class GameEngine {
 module.exports = new GameEngine();
 module.exports.ANSWER_GRACE_MS = ANSWER_GRACE_MS;
 module.exports.DEFAULT_RULES = DEFAULT_RULES;
+module.exports.forRound = forRound;

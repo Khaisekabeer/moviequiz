@@ -3,7 +3,7 @@ import { parseCsv } from './csv';
 // Bulk import and the set checker for the quiz master. Both work on the open set in the browser,
 // so the questions stay encrypted on the server.
 
-interface LevelRef { number: number; name: string; isActive: boolean }
+interface LevelRef { number: number; name: string; isActive: boolean; mode?: string }
 export interface CheckQuestion {
   level: number; text: string; type: string; options: string[]; correctAnswer: string;
   isActive: boolean; backup?: boolean; imageId?: string | null; videoId?: string | null; clipKind?: string | null;
@@ -69,6 +69,10 @@ export function checkSet(questions: CheckQuestion[], levels: LevelRef[]) {
 
   for (const level of rounds) {
     const inLevel = live.filter(q => q.level === level.number);
+    const withOptions = inLevel.filter(q => q.type !== 'short').length;
+    if (withOptions && ['buzzer', 'passing'].includes(level.mode ?? '')) {
+      warnings.push(`${level.name}: ${withOptions === 1 ? '1 question still has' : `${withOptions} questions still have`} options. This round has none, so they play as spoken and the coordinator marks them.`);
+    }
     const positions = inLevel.filter(q => q.type === 'mcq' && q.options.length === 4).map(q => q.options.indexOf(q.correctAnswer));
     if (positions.length >= 8) {
       const counts = [0, 1, 2, 3].map(p => positions.filter(x => x === p).length);

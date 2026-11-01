@@ -23,6 +23,7 @@ const CUT_RULES = ['top', 'percent', 'min_score', 'bottom', 'min_correct'];
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
 const ROUND_MODES = ['standard', 'buzzer', 'passing', 'display'];
+const SPOKEN_ROUNDS = ['buzzer', 'passing']; // no options: the coordinator marks every answer
 const VIDEO_TYPES = ['video/mp4', 'video/webm'];
 // Audio clips share the video bucket and pipeline; the file's type says which one a clip is.
 const AUDIO_TYPES = ['audio/mpeg', 'audio/mp4', 'audio/x-m4a', 'audio/aac', 'audio/wav', 'audio/x-wav', 'audio/wave', 'audio/ogg', 'audio/webm'];
@@ -79,6 +80,15 @@ function validateQuestion(body) {
   return { level, type, text, options, correctAnswer, accepted, note, backup: body.backup === true, timeLimit, points, imageId, videoId, isActive: body.isActive !== false };
 }
 
+// Spoken questions can't go in a standard round, and buzzer and turns rounds take nothing else.
+function checkFitsLevel(levels, q) {
+  const level = levels.find(l => l.number === q.level);
+  check(level, 'That level no longer exists — reload the page');
+  const mode = level.mode ?? 'standard';
+  check(q.type !== 'short' || mode !== 'standard', 'Spoken questions need a buzzer or turns round — change the round type in the level settings first');
+  check(q.type === 'short' || !SPOKEN_ROUNDS.includes(mode), 'Buzzer and turns rounds have no options — make this a spoken question');
+}
+
 /**
  * Hooks connect the API to the live game, either in the same process or on another machine
  * (see app.js localHooks / remoteHooks). All are async.
@@ -89,6 +99,7 @@ function validateQuestion(body) {
  */
 module.exports = createApi;
 module.exports.validateQuestion = validateQuestion;
+module.exports.checkFitsLevel = checkFitsLevel;
 
 function createApi(hooks) {
   const api = express.Router();
@@ -652,11 +663,6 @@ function createApi(hooks) {
     }));
   }));
 
-  const checkFitsLevel = (levels, q) => {
-    const level = levels.find(l => l.number === q.level);
-    check(level, 'That level no longer exists — reload the page');
-    check(q.type !== 'short' || (level.mode ?? 'standard') !== 'standard', 'Spoken questions need a buzzer or turns round — change the round type in the level settings first');
-  };
   const checkLevelExists = async (req, q) => checkFitsLevel(await store.listLevels(bankOf(req)), q);
 
   // Bulk import from a spreadsheet. All rows are checked first, so a bad row adds nothing.
@@ -770,9 +776,10 @@ function createApi(hooks) {
 
   api.put('/levels/:level', small, ...qm, route(async (req, res) => {
     const fields = validateLevel(req.body);
-    if (fields.mode === 'standard') {
-      const rows = await store.listQuestionRows(bankOf(req));
-      check(!rows.some(r => r.level === Number(req.params.level) && r.type === 'short'), 'This level has spoken questions, which need a buzzer or turns round');
+    if (fields.mode !== 'display') {
+      const rows = (await store.listQuestionRows(bankOf(req))).filter(r => r.level === Number(req.params.level));
+      check(fields.mode !== 'standard' || !rows.some(r => r.type === 'short'), 'This level has spoken questions, which need a buzzer or turns round');
+      check(fields.mode === 'standard' || rows.every(r => r.type === 'short'), 'This level has questions with options. Buzzer and turns rounds have none, so make them spoken first');
     }
     const level = await store.updateLevel(bankOf(req), Number(req.params.level), fields);
     if (!level) return res.status(404).json({ error: 'Level not found' });

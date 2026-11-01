@@ -292,6 +292,25 @@ describe('passing round', () => {
     engine.useBackup(2);
     assert.equal(engine.getState().live.mode, 'passing');
   });
+
+  for (const mode of ['passing', 'buzzer']) {
+    test(`a spare with options loses them when it replaces a ${mode} question`, () => {
+      start([q(1, mode), q(2, 'standard', { backup: true })], 2);
+      engine.endQuestion({ cancelled: true });
+      engine.useBackup(2);
+      const shown = engine.getState().currentQuestion;
+      assert.deepEqual(shown.options, []);
+      assert.equal(shown.spoken, true);
+      assert.equal(engine.hostAnswer().answer, 'A');
+    });
+  }
+
+  test('a spare keeps its options in a standard round', () => {
+    start([q(1, 'standard'), q(2, 'standard', { backup: true })], 2);
+    engine.endQuestion({ cancelled: true });
+    engine.useBackup(2);
+    assert.equal(engine.getState().currentQuestion.options.length, 4);
+  });
 });
 
 describe('spoken questions (no options, the coordinator marks the answer)', () => {

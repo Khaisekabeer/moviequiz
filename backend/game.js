@@ -95,7 +95,8 @@ function createGame(io, { serverInfo = () => ({ lanAddresses: [], port: null }) 
 
   function loadQuestions(questions, byName, bank = null) {
     if (gameEngine.state !== 'lobby') return { error: 'Questions can only be loaded while the game is in the lobby' };
-    gameEngine.setQuestions(questions);
+    // Spares keep their own type: they can also be played as a sudden death.
+    gameEngine.setQuestions(questions.map(q => (q.backup ? q : gameEngine.forRound(q))));
     questionsLoaded = { count: gameEngine.questions.length, by: byName, at: Date.now(), bank };
     console.log(`${byName} loaded ${gameEngine.questions.length} questions and ${gameEngine.backups.length} backups${bank ? ` from "${bank.name}"` : ''} into the game`);
     broadcastState();

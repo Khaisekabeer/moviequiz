@@ -244,7 +244,7 @@ If the organizer wants the exact URL `vyuham.duk.ac.in/#/techfest` to land on th
 
 **Looks:** the projector and phones use comic-style themes: the cinema set **Marquee** (midnight blue and gold), **Curtain** (velvet red), **Noir** (black and white) and **Popcorn** (cream and red), then **Blast** (yellow sunburst), **Pop** (yellow & pink pop art), **Arcade** (lime burst), **Circuit** (blue tech windows) and **Classic** (plain white). Each level can have its own (level settings → "Look on screen"); left on *Automatic*, every round gets the next theme. The lobby and podium use Marquee, with the Vyuham logo throughout.
 
-**Answer types** are set per question. **Multiple choice** and **True / False** are answered and scored on phones. **Spoken** has no options: the player says the answer, and the coordinator presses Correct, Wrong, Pass or No answer in the host console, which alone shows the answer and accepted alternatives while the question is live. Phones and the projector get the answer only at the reveal. Nothing is scored on a spoken question until the coordinator presses a button, even when the timer runs out. Spoken questions need a buzzer or turns round.
+**Answer types** are set per question. **Multiple choice** and **True / False** are answered and scored on phones. **Spoken** has no options: the player says the answer, and the coordinator presses Correct, Wrong, Pass or No answer in the host console, which alone shows the answer and accepted alternatives while the question is live. Phones and the projector get the answer only at the reveal. Nothing is scored on a spoken question until the coordinator presses a button, even when the timer runs out. Buzzer and Turns rounds are spoken only and have no options, and a Standard round can't have spoken questions. A question with options that is already in one of those rounds plays as spoken, and **Check this set** lists it. A spare that replaces a cancelled question in those rounds plays as spoken too; as a sudden death it keeps its options.
 
 **Round types** are set per level (level settings → "Round type"). **Show only** shows questions and answers and collects and scores nothing. For the others, Turns rounds are called *Passing* in the table below:
 
@@ -361,6 +361,17 @@ SIM_USER=... SIM_PASSWORD=... node simulate-event.js --auto   # the script condu
 - Bots answer the test questions from `npm run seed:test` correctly according to their skill; other questions at random.
 - Bots rejoin after a game reset, so you can run several rounds. Event-day server: `--server=https://game.yourdomain.com`.
 - `--auto` options: `--lobby=10`, `--intro=4`, `--reveal=6` (seconds). Results are saved to Supabase like a real game.
+
+## Demo
+
+A walkthrough of the four rounds on every screen: projector, host console, live monitor, phones and the staff pages. It is one HTML file that needs no server, database or internet.
+
+```bash
+cd frontend
+npm run demo        # writes demo/dist/moviequiz-demo.html; open it in a browser
+```
+
+[`backend/demo-record.js`](backend/demo-record.js) plays two scripted games on the real game server with an in-memory database (it never reads `.env`) and records what each screen receives. [`frontend/demo/`](frontend/demo/) replays that into the real pages, so changes to the game or the pages appear after the next `npm run demo`. Questions, players and tickets are made up, and the pictures and clips are placeholders. Keep real questions out of it: the file is not encrypted. The steps and their captions are in `demo-record.js`, and the app's own build doesn't include any of this.
 
 ## Tests
 

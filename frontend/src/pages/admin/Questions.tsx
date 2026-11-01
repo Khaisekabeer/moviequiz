@@ -48,6 +48,9 @@ const ROUND_MODES: { id: RoundMode; label: string }[] = [
   { id: 'display', label: 'Show only — quiz master runs answers and scores' },
 ];
 
+// These rounds have no options: the player says the answer and the coordinator marks it.
+const spokenOnly = (levels: Level[], number: number) => ['buzzer', 'passing'].includes(levels.find(l => l.number === number)?.mode ?? '');
+
 // What a question is made of. Only the text and media are stored; the format follows from them.
 type Format = 'text' | 'image' | 'image_text' | 'audio' | 'video';
 const FORMATS: { id: Format; label: string }[] = [
@@ -692,6 +695,11 @@ function LevelSettings({ level, round, questionCount, guard, onChanged }: {
         <button type="button" className="btn btn-danger btn-sm" onClick={remove} disabled={questionCount > 0}
           title={questionCount > 0 ? 'Move or delete its questions first' : undefined}>Delete level</button>
       </form>
+      {mode !== level.mode && (
+        <p role="status" style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--heat)', margin: '10px 0 0' }}>
+          Press Save level to switch to this round type. Until then, new questions follow the saved type.
+        </p>
+      )}
       <p className="dim" style={{ fontSize: '0.8rem', margin: '10px 0 0' }}>
         Shown on the projector and phones when this round starts. Levels are played in the order of the tabs; empty levels are skipped.
         A level that is turned off stays here with its questions but is not played, and the levels after it are renumbered.
@@ -705,13 +713,13 @@ function LevelSettings({ level, round, questionCount, guard, onChanged }: {
       {mode === 'buzzer' && (
         <p className="dim" style={{ fontSize: '0.8rem', margin: '6px 0 0' }}>
           {manualResults
-            ? 'Buzzer: everyone can press once and nobody locks. The projector and host console show the order they pressed in, and the quiz master takes answers in that order.'
-            : "Buzzer: the first to buzz gets the question and the other buzzers lock. A wrong answer locks that player out and reopens the question to the others, one attempt each. With options the player answers on their phone; spoken questions are marked by the coordinator. Without fixed points, a correct answer earns the question's points and a wrong one costs half."}
+            ? 'Buzzer: questions are spoken, with no options. Everyone can press once and nobody locks. The projector and host console show the order they pressed in, and the quiz master takes answers in that order.'
+            : "Buzzer: questions are spoken, with no options. The first to buzz gets the question and the other buzzers lock, and the coordinator marks the answer. A wrong answer locks that player out and reopens the question to the others, one attempt each. Without fixed points, a correct answer earns the question's points and a wrong one costs half."}
         </p>
       )}
       {mode === 'passing' && (
         <p className="dim" style={{ fontSize: '0.8rem', margin: '6px 0 0' }}>
-          Turns: each question goes to one player, and the first go moves along with each question, so 5 finalists and 15 questions give 3 each. With options the player answers on their phone; spoken questions are marked by the coordinator, who decides if time runs out. If the question goes to the next player, each later turn is half the timer, it reaches 6 players at most, and without fixed points it is worth half.
+          Turns: questions are spoken, with no options. Each question goes to one player, and the first go moves along with each question, so 5 finalists and 15 questions give 3 each. The coordinator marks the answer and decides if time runs out. If the question goes to the next player, each later turn is half the timer, it reaches 6 players at most, and without fixed points it is worth half.
         </p>
       )}
     </Panel>
@@ -838,7 +846,8 @@ function QuestionImage({ imageId, onChange }: { imageId: string | null; onChange
 function Editor({ draft, levels, onSave, onCancel }: {
   draft: Draft; levels: Level[]; onSave: (d: Draft) => Promise<unknown>; onCancel: () => void;
 }) {
-  const [d, setD] = useState<Draft>(draft);
+  const fitLevel = (q: Draft): Draft => (spokenOnly(levels, q.level) && q.type !== 'short' ? { ...q, type: 'short', options: [] } : q);
+  const [d, setD] = useState<Draft>(() => fitLevel(draft));
   const [saving, setSaving] = useState(false);
   const [format, setFormat] = useState<Format>(() => formatOf(draft));
   const usesImage = format === 'image' || format === 'image_text';
@@ -854,6 +863,7 @@ function Editor({ draft, levels, onSave, onCancel }: {
   const spoken = d.type === 'short';
   const levelOfDraft = levels.find(l => l.number === d.level);
   const canSpeak = levelOfDraft?.mode !== undefined && levelOfDraft.mode !== 'standard';
+  const noOptions = spokenOnly(levels, d.level);
   const options = d.type === 'tf' ? ['True', 'False'] : d.options;
   const filled = options.map(o => o.trim()).filter(Boolean);
 
@@ -887,7 +897,7 @@ function Editor({ draft, levels, onSave, onCancel }: {
         <div className="form-grid" style={{ marginTop: 14 }}>
           <div className="form-row">
             <label className="eyebrow" htmlFor="q-level">Level</label>
-            <select id="q-level" className="field field-sm" value={d.level} onChange={e => setD({ ...d, level: Number(e.target.value) })}>
+            <select id="q-level" className="field field-sm" value={d.level} onChange={e => setD(fitLevel({ ...d, level: Number(e.target.value) }))}>
               {levels.map(l => <option key={l.number} value={l.number}>{l.isActive ? `Level ${roundOf(levels, l)}` : 'Off'} · {l.name}</option>)}
             </select>
           </div>
@@ -895,8 +905,8 @@ function Editor({ draft, levels, onSave, onCancel }: {
             <label className="eyebrow" htmlFor="q-type">Type</label>
             <select id="q-type" className="field field-sm" value={d.type}
               onChange={e => setD({ ...d, type: e.target.value as Draft['type'], correctAnswer: '', accepted: '', options: e.target.value === 'tf' ? ['True', 'False'] : ['', '', '', ''] })}>
-              <option value="mcq">Multiple choice — options on phones</option>
-              <option value="tf">True / False</option>
+              <option value="mcq" disabled={noOptions}>Multiple choice — options on phones{noOptions ? ' (not in a buzzer or turns level)' : ''}</option>
+              <option value="tf" disabled={noOptions}>True / False{noOptions ? ' (not in a buzzer or turns level)' : ''}</option>
               <option value="short" disabled={!canSpeak}>Spoken — no options, coordinator marks it{canSpeak ? '' : ' (needs a buzzer or turns level)'}</option>
             </select>
           </div>

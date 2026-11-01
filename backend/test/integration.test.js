@@ -1056,6 +1056,58 @@ describe('show-only rounds over the socket', () => {
   });
 });
 
+describe('buzzer and turns rounds have no options', () => {
+  const levels = [{ number: 1, mode: 'standard' }, { number: 2, mode: 'buzzer' }, { number: 3, mode: 'passing' }, { number: 4, mode: 'display' }];
+  const mcq = level => ({ level, type: 'mcq' });
+  const tf = level => ({ level, type: 'tf' });
+  const said = level => ({ level, type: 'short' });
+
+  test('the API takes spoken questions only in those rounds', () => {
+    const { checkFitsLevel } = require('../api');
+    for (const level of [2, 3]) {
+      assert.throws(() => checkFitsLevel(levels, mcq(level)), /no options/);
+      assert.throws(() => checkFitsLevel(levels, tf(level)), /no options/);
+      assert.doesNotThrow(() => checkFitsLevel(levels, said(level)));
+    }
+  });
+
+  test('other rounds are as before', () => {
+    const { checkFitsLevel } = require('../api');
+    assert.doesNotThrow(() => checkFitsLevel(levels, mcq(1)));
+    assert.throws(() => checkFitsLevel(levels, said(1)), /need a buzzer or turns round/);
+    assert.doesNotThrow(() => checkFitsLevel(levels, mcq(4)));
+    assert.doesNotThrow(() => checkFitsLevel(levels, said(4)));
+  });
+
+  test('a saved set with options in those rounds loads, and plays them as spoken', async () => {
+    game.loadQuestions([q(1, 1), q(2, 2, { mode: 'buzzer', answerSeconds: 3 }), q(3, 3, { mode: 'passing', afterMiss: 'close' })], 'Test');
+    assert.deepEqual(engine.questions.map(x => x.type), ['mcq', 'short', 'short']);
+
+    const h = await host();
+    const a = await player('Asha');
+    await act(h, 'start_game');
+    await act(h, 'start_question');
+    assert.equal(last(a, 'game_state')?.currentQuestion?.options.length ?? 4, 4); // the standard round keeps them
+    await act(h, 'end_question');
+
+    await act(h, 'start_question'); // the buzzer round's intro
+    await act(h, 'start_question');
+    await until(() => last(a, 'game_state')?.live?.mode === 'buzzer', 'the buzzer question');
+    assert.deepEqual(last(a, 'game_state').currentQuestion.options, []);
+    assert.equal(last(a, 'game_state').currentQuestion.spoken, true);
+    assert.equal((await ask(a, 'buzz')).success, true);
+    assert.match((await ask(a, 'submit_answer', 'A')).error, /out loud/);
+    await until(() => last(h, 'host_answer')?.answer === 'A', 'the answer on the host console');
+    assert.equal((await act(h, 'judge_answer', { verdict: 'correct' })).success, true);
+  });
+
+  test('a spare stays as written, for a sudden death', () => {
+    game.loadQuestions([q(1, 1, { mode: 'buzzer' }), q(2, 1, { backup: true })], 'Test');
+    assert.equal(engine.backups[0].type, 'mcq');
+    assert.equal(engine.backups[0].options.length, 4);
+  });
+});
+
 describe('spoken questions over the socket', () => {
   const spoken = { type: 'short', options: [], correctAnswer: 'Drishyam', accepted: 'Papanasam', mode: 'buzzer', untimed: true, answerSeconds: 3, scoring: { correct: 10, wrong: -5, timeout: 0 } };
 
