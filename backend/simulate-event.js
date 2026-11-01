@@ -274,7 +274,7 @@ async function runAuto(h) {
       const b = new Bot(i);
       return { ticket_id: b.ticketId, name: b.name, college: 'Simulation', checked_in_at: now };
     });
-    const { error } = await supabase.from('registrations').upsert(rows, { onConflict: 'ticket_id' });
+    const { error } = await supabase.from('movie_registrations').upsert(rows, { onConflict: 'ticket_id' });
     if (error) throw new Error(`Adding SIM tickets failed: ${error.message}`);
     log(`Check-in required: SIM0001-SIM${String(PLAYERS).padStart(4, '0')} added as checked in`);
   }

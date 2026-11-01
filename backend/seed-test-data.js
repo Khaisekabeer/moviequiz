@@ -7,7 +7,7 @@
 // questions are kept) as plaintext rows; they are encrypted automatically the next time a quiz
 // master opens the set with its PIN. Re-running adds them again unless they are still plaintext.
 // Clean up afterwards: delete or hide the test questions in Admin -> Questions, and remove the
-// TEST tickets in the Supabase dashboard (registrations where ticket_id starts with TEST).
+// TEST tickets in the Supabase dashboard (movie_registrations where ticket_id starts with TEST).
 require('dotenv').config();
 const { supabase } = require('./db');
 
@@ -80,7 +80,7 @@ async function addQuestionsToSet(setName, questions) {
 }
 
 async function main() {
-  await check(supabase.from('registrations').upsert(REGISTRATIONS, { onConflict: 'ticket_id' }), 'Adding registrations');
+  await check(supabase.from('movie_registrations').upsert(REGISTRATIONS, { onConflict: 'ticket_id' }), 'Adding registrations');
   console.log(`Registrations: ${REGISTRATIONS.length} (TEST0001-TEST0020 checked in, TEST0021-TEST0030 not yet)`);
   const setName = process.argv[2] || 'Trial set';
   const added = await addQuestionsToSet(setName, QUESTIONS);

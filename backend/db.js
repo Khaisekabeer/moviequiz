@@ -34,7 +34,7 @@ function toParticipantRow(gameId, p) {
     streak: p.streak,
     total_response_ms: p.totalResponseTime,
     final_rank: p.finalRank ?? null,
-    ticket_id: p.ticketId ?? null,
+    movie_ticket_id: p.ticketId ?? null,
     status: p.status || 'active',
     avatar: p.avatar ?? null,
     eliminated_level: p.exit?.level ?? null,

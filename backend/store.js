@@ -135,14 +135,14 @@ async function upsertRegistrations(rows) {
   let saved = 0;
   for (let i = 0; i < rows.length; i += 500) {
     const batch = rows.slice(i, i + 500);
-    await run(supabase.from('registrations').upsert(batch, { onConflict: 'ticket_id' }), 'Importing participants');
+    await run(supabase.from('movie_registrations').upsert(batch, { onConflict: 'ticket_id' }), 'Importing participants');
     saved += batch.length;
   }
   return saved;
 }
 
 async function searchRegistrations({ q = '', status = 'all', limit = 50, offset = 0 }) {
-  let query = supabase.from('registrations').select(REG_COLUMNS, { count: 'exact' });
+  let query = supabase.from('movie_registrations').select(REG_COLUMNS, { count: 'exact' });
   const term = q.trim().replace(/[%_,()]/g, ' ');
   if (term) query = query.or(`ticket_id.ilike.%${term}%,name.ilike.%${term}%,email.ilike.%${term}%,college.ilike.%${term}%`);
   if (status === 'in') query = query.not('checked_in_at', 'is', null);
@@ -152,14 +152,14 @@ async function searchRegistrations({ q = '', status = 'all', limit = 50, offset 
 }
 
 async function getRegistration(ticketId) {
-  const rows = await run(supabase.from('registrations').select(REG_COLUMNS).eq('ticket_id', ticketId).limit(1), 'Loading ticket');
+  const rows = await run(supabase.from('movie_registrations').select(REG_COLUMNS).eq('ticket_id', ticketId).limit(1), 'Loading ticket');
   return toRegistration(rows[0]);
 }
 
 // Atomic: only admits if not already checked in. Returns the registration, or null if it was already in.
 async function admit(ticketId, staffId) {
   const rows = await run(
-    supabase.from('registrations')
+    supabase.from('movie_registrations')
       .update({ checked_in_at: new Date().toISOString(), checked_in_by: staffId })
       .eq('ticket_id', ticketId)
       .is('checked_in_at', null)
@@ -173,7 +173,7 @@ async function admit(ticketId, staffId) {
 
 async function undoCheckin(ticketId, staffId) {
   const rows = await run(
-    supabase.from('registrations')
+    supabase.from('movie_registrations')
       .update({ checked_in_at: null, checked_in_by: null })
       .eq('ticket_id', ticketId)
       .select(REG_COLUMNS),
@@ -184,19 +184,19 @@ async function undoCheckin(ticketId, staffId) {
 }
 
 function logCheckin(ticketId, staffId, action) {
-  return run(supabase.from('checkin_events').insert({ ticket_id: ticketId, staff_id: staffId, action }), 'Logging check-in');
+  return run(supabase.from('movie_checkin_events').insert({ ticket_id: ticketId, staff_id: staffId, action }), 'Logging check-in');
 }
 
 async function checkinStats() {
   const [all, done] = await Promise.all([
-    run(supabase.from('registrations').select('ticket_id', { count: 'exact', head: true }), 'Counting participants'),
-    run(supabase.from('registrations').select('ticket_id', { count: 'exact', head: true }).not('checked_in_at', 'is', null), 'Counting check-ins'),
+    run(supabase.from('movie_registrations').select('ticket_id', { count: 'exact', head: true }), 'Counting participants'),
+    run(supabase.from('movie_registrations').select('ticket_id', { count: 'exact', head: true }).not('checked_in_at', 'is', null), 'Counting check-ins'),
   ]);
   return { total: all.count, checkedIn: done.count };
 }
 
 async function recentCheckins({ staffId, limit = 20 } = {}) {
-  let query = supabase.from('checkin_events')
+  let query = supabase.from('movie_checkin_events')
     .select('id, action, created_at, ticket_id, registration:ticket_id (name, college), staff:staff_id (display_name)')
     .order('created_at', { ascending: false })
     .limit(limit);
@@ -542,7 +542,7 @@ async function gameResults(gameId) {
   if (!game) return null;
   const rows = await run(
     supabase.from('participants')
-      .select('name, score, round_scores, final_rank, ticket_id, status, registration:ticket_id (name, email, phone, college), exit:eliminations (round, reason, note, rank_at_exit)')
+      .select('name, score, round_scores, final_rank, ticket_id:movie_ticket_id, status, registration:movie_ticket_id (name, email, phone, college), exit:eliminations (round, reason, note, rank_at_exit)')
       .eq('game_id', game.id)
       .order('final_rank', { ascending: true, nullsFirst: false })
       .order('score', { ascending: false }),

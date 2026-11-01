@@ -45,7 +45,7 @@ const pct = (arr, p) => [...arr].sort((a, b) => a - b)[Math.min(arr.length - 1, 
     const rows = Array.from({ length: PLAYERS }, (_, i) => ({
       ticket_id: `LTTEST${String(i).padStart(4, '0')}`, name: `Load Test ${i}`, checked_in_at: now,
     }));
-    const { error } = await supabase.from('registrations').upsert(rows, { onConflict: 'ticket_id' });
+    const { error } = await supabase.from('movie_registrations').upsert(rows, { onConflict: 'ticket_id' });
     if (error) throw new Error(`Seeding test tickets failed: ${error.message}`);
     console.log(`Check-in required: seeded ${PLAYERS} checked-in LTTEST tickets`);
   }

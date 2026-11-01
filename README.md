@@ -120,6 +120,13 @@ Generate secrets with `node -e "console.log(require('crypto').randomBytes(32).to
 ### 1. Supabase
 Run the files in [`supabase/migrations/`](supabase/migrations/) in order (SQL Editor).
 
+**Shared with the tech quiz.** This quiz can use the TechSprint Supabase project, and the live event does. Run the migrations there one at a time, not with `supabase db push`: that project's migration history has different version numbers, so a push would try to run the old files again.
+
+- Participants and check-ins are the quiz's own (`movie_registrations`, `movie_checkin_events`, `participants.movie_ticket_id`), so tech tickets can't join and tech records stay as they are.
+- Give this app its own `QUESTION_VAULT_SECRET`. Both apps list every set, but a set only opens under the secret it was created with.
+- Staff accounts are shared, so sign in with the existing logins; `ADMIN_PASSWORD` is not used. `game_server_url` is also shared, so only one quiz can run at a time.
+- `SUPABASE_SECRET_KEY` must be the `service_role` or secret key. The `anon` or publishable key can't read or write anything here.
+
 ### 2. Vercel (pages + admin API)
 1. Import the GitHub repo into Vercel. Keep the **root directory** as the repo root — [`vercel.json`](vercel.json) builds `frontend/`, installs `backend/` for the API function and routes `/api/*` to [`api/index.js`](api/index.js).
 2. Add the environment variables above (Production).
