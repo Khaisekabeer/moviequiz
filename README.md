@@ -23,6 +23,8 @@ npm run tunnel                   # in a second terminal: publishes it (see the t
 
 In this mode leave **Admin → Overview → Live game server** empty and open every page from the tunnel address, so the projector's QR code points phones to the right place. Clips pass through the server (`backend/mediaProxy.js`) because local Supabase can't be reached from other devices. The Vercel + Supabase cloud setup further down remains available but isn't needed.
 
+**Working on the pages:** `npm run dev` in `frontend` opens http://localhost:5173 and also starts the backend on :3001, unless one is already running there. The `backend` folder holds both the admin API (sign-in, staff, questions) and the live game server, so the admin side needs it locally. On Vercel the admin API is part of the deployment and only the live game needs the laptop.
+
 ## Setting up the document's four rounds
 
 In **Admin → Questions**, create four levels:
@@ -71,7 +73,7 @@ To have the system score these rounds instead, untick *Results kept by hand* and
 
 ## Staff roles
 
-Every staff member has their own login (username or email), created by an admin in **Admin → Staff**. Each account also says which quiz it is for: **Movie quiz**, **Tech quiz** or **Both quizzes**. Tech quiz accounts can't sign in here, and an admin can change this at any time.
+Every staff member has their own login (username or email), created by an admin in **Admin → Staff**. Accounts made here are for the movie quiz. **Admin → Staff** lists and changes only this quiz's team; tech quiz accounts can't sign in here and don't appear.
 
 | Role | Responsibility | Can do |
 |---|---|---|
@@ -124,7 +126,7 @@ Run the files in [`supabase/migrations/`](supabase/migrations/) in order (SQL Ed
 
 - Participants and check-ins are the quiz's own (`movie_registrations`, `movie_checkin_events`, `participants.movie_ticket_id`), so tech tickets can't join and tech records stay as they are.
 - Give this app its own `QUESTION_VAULT_SECRET`. Both apps list every set, but a set only opens under the secret it was created with.
-- Staff accounts are in one shared table, and the **Quiz** field on each says who can sign in here. Accounts from before that field are Tech quiz accounts, except active admins, who are on both. `ADMIN_PASSWORD` is only used if this quiz has no staff at all.
+- Staff accounts are in one shared table, and `staff.quiz` (`movie`, `tech` or `both`) says who belongs here. Accounts from before that column are `tech`, except active admins, who are `both`. The column is only changed in the database. `ADMIN_PASSWORD` is only used if this quiz has no staff at all.
 - `game_server_url` is shared, so only one quiz can run at a time.
 - `SUPABASE_SECRET_KEY` must be the `service_role` or secret key. The `anon` or publishable key can't read or write anything here.
 

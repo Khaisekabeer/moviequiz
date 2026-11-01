@@ -334,19 +334,19 @@ function createApi(hooks) {
     const username = str(req.body?.username, 64);
     const displayName = str(req.body?.displayName, 60);
     const role = req.body?.role;
-    const quiz = req.body?.quiz ?? 'movie';
     const password = typeof req.body?.password === 'string' ? req.body.password : '';
     check(USERNAME_RE.test(username), 'Username: an email address, or 3-64 letters, numbers, dot, dash or underscore');
     check(displayName, 'Name is required');
     check(ROLES.includes(role), 'Choose a role');
-    check(auth.QUIZZES.includes(quiz), 'Choose a quiz');
     check(password.length >= 8, 'Password must be at least 8 characters');
-    check(!(await store.findStaffForLogin(username)), 'That username is taken');
+    const existing = await store.findStaffForLogin(username);
+    check(!existing || auth.forThisQuiz(existing), 'That username is on the tech quiz. Use a different one.');
+    check(!existing, 'That username is taken');
     const staff = await store.createStaff({
       username,
       display_name: displayName,
       role,
-      quiz,
+      quiz: 'movie',
       password_hash: await auth.hashSecret(password),
       created_by: req.session.staff.id,
     });
@@ -355,7 +355,7 @@ function createApi(hooks) {
 
   api.patch('/staff/:id', small, requireStaff(ADMIN), route(async (req, res) => {
     const target = await store.getStaffRow(req.params.id);
-    if (!target) return res.status(404).json({ error: 'Staff member not found' });
+    if (!target || !auth.forThisQuiz(target)) return res.status(404).json({ error: 'Staff member not found' });
     const isSelf = target.id === req.session.staff.id;
     const fields = {};
     let endSessions = false;
@@ -368,12 +368,6 @@ function createApi(hooks) {
       check(ROLES.includes(req.body.role), 'Choose a role');
       check(!isSelf, "You can't change your own role");
       fields.role = req.body.role;
-      endSessions = true;
-    }
-    if (req.body.quiz !== undefined && req.body.quiz !== target.quiz) {
-      check(auth.QUIZZES.includes(req.body.quiz), 'Choose a quiz');
-      check(!isSelf, "You can't change your own quiz");
-      fields.quiz = req.body.quiz;
       endSessions = true;
     }
     if (req.body.active !== undefined) {
@@ -394,8 +388,7 @@ function createApi(hooks) {
       endSessions = !isSelf || endSessions;
     }
     // Never leave the event without an active admin.
-    if (target.role === ADMIN && auth.forThisQuiz(target)
-      && (fields.active === false || (fields.role && fields.role !== ADMIN) || fields.quiz === 'tech')) {
+    if (target.role === ADMIN && (fields.active === false || (fields.role && fields.role !== ADMIN))) {
       check((await store.countActiveAdmins()) > 1, 'There must be at least one active admin');
     }
     check(Object.keys(fields).length, 'Nothing to change');

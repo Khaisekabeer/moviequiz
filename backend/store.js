@@ -12,7 +12,7 @@ async function run(query, label) {
   return count !== undefined && count !== null ? { data, count } : data;
 }
 
-const STAFF_COLUMNS = 'id, username, display_name, role, quiz, active, created_at, pin_hash';
+const STAFF_COLUMNS = 'id, username, display_name, role, active, created_at, pin_hash';
 // Staff who can sign in to this quiz (see auth.forThisQuiz).
 const OUR_STAFF = ['movie', 'both'];
 
@@ -22,7 +22,6 @@ function toStaff(row) {
     username: row.username,
     displayName: row.display_name,
     role: row.role,
-    quiz: row.quiz,
     active: row.active,
     createdAt: row.created_at,
     hasPin: !!row.pin_hash,
@@ -60,7 +59,7 @@ async function getStaffRow(id) {
 }
 
 async function listStaff() {
-  const rows = await run(supabase.from('staff').select(STAFF_COLUMNS).order('role').order('display_name'), 'Listing staff');
+  const rows = await run(supabase.from('staff').select(STAFF_COLUMNS).in('quiz', OUR_STAFF).order('role').order('display_name'), 'Listing staff');
   return rows.map(toStaff);
 }
 

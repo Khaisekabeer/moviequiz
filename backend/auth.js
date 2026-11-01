@@ -49,7 +49,6 @@ function toSessionStaff(s) {
 }
 
 // Staff and sessions are shared with the tech quiz; each account says which quiz it is for.
-const QUIZZES = ['movie', 'tech', 'both'];
 const forThisQuiz = staff => staff.quiz !== 'tech';
 
 // Short-lived cache: with several serverless instances, a lock / deactivation made on one
@@ -194,7 +193,6 @@ async function ensureBootstrapAdmin() {
 }
 
 module.exports = {
-  QUIZZES,
   forThisQuiz,
   VAULT_TTL_MS,
   hashSecret,
