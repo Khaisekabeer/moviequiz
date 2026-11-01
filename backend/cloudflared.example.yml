@@ -1,0 +1,12 @@
+# Cloudflare Tunnel config for the event-day game server. Publishes http://localhost:3001
+# (npm run game) at https://game.yourdomain.com.
+#
+# You normally don't need this file: npm run tunnel:setup -- game.yourdomain.com signs in, creates
+# the tunnel and writes backend/cloudflared.yml like this one. See README → Deployment.
+tunnel: <TUNNEL-ID>
+credentials-file: C:\Users\<you>\.cloudflared\<TUNNEL-ID>.json
+
+ingress:
+  - hostname: game.yourdomain.com
+    service: http://localhost:3001
+  - service: http_status:404

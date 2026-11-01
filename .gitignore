@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env
+*.sqlite
+*.log
+cloudflared.exe
+*.exe
+.cloudflared/
+backend/cloudflared.yml
+*.zip
+techfest_techquiz_chat.md
