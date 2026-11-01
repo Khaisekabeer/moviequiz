@@ -57,7 +57,11 @@ const htaccess = (base: string): Plugin => ({
   },
 })
 
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ command, mode }) => {
+  // A build is always a production build. NODE_ENV=development in the host's variables would
+  // otherwise point the deployed pages at the dev API on :3001.
+  if (command === 'build') process.env.NODE_ENV = 'production'
+
   const env = loadEnv(mode, process.cwd())
   const apache = mode === 'apache'
 
